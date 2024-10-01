@@ -3,7 +3,7 @@ db={
   "numbers": [
     {
         "_id": 1,
-        "description": "Interlaken",
+        "name": "meiringen",
         "number": "041 79 788 88 88",
         "last_called": "time.Time)",
         "last_call_status": "reached|failed",
@@ -12,10 +12,10 @@ db={
   "hx_areas": [
     {
         "_id": 1,
-        "full_name": "Interlaken TMA 1",
-        "area": "interlaken-tma-1",
+        "full_name": "Meiringen TMA 1",
+        "area": "meiringen-tma-1",
         "next_action": "time.Time",
-        "number_id": 1
+        "number_name": "meiringen"
     }
   ],
   "hx_status": [

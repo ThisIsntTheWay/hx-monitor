@@ -12,54 +12,46 @@ db.hx_areas.drop()
 
 db.numbers.insertMany([
     {
-        _id: 1,
-        description: "Meiringen",
+        name: "meiringen",
         number: "0-800-496-347"
     }
 ])
 
 db.hx_areas.insertMany([
     {
-        _id: 1,
         full_name: "Meiringen TMA 1",
         area: "meiringen-tma-1",
-        number_id: 1
+        number_name: "meiringen"
     },
     {
-        _id: 2,
         full_name: "Meiringen TMA 2",
         area: "meiringen-tma-2",
-        number_id: 1
+        number_name: "meiringen"
     },
     {
-        _id: 3,
         full_name: "Meiringen TMA 3",
         area: "meiringen-tma-3",
-        number_id: 1
+        number_name: "meiringen"
     },
     {
-        _id: 4,
         full_name: "Meiringen TMA 4",
         area: "meiringen-tma-4",
-        number_id: 1
+        number_name: "meiringen"
     },
     {
-        _id: 5,
         full_name: "Meiringen TMA 5",
         area: "meiringen-tma-5",
-        number_id: 1
+        number_name: "meiringen"
     },
     {
-        _id: 6,
         full_name: "Meiringen TMA 6",
         area: "meiringen-tma-6",
-        number_id: 1
+        number_name: "meiringen"
     },
     {
-        _id: 7,
         full_name: "Meiringen CTX",
         area: "meiringen-ctx",
-        number_id: 1
+        number_name: "meiringen"
     },
 ])
 
