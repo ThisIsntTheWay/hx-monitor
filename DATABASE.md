@@ -5,7 +5,7 @@ db={
         "_id": 1,
         "description": "Interlaken",
         "number": "041 79 788 88 88",
-        "last_called": "unix.Now()",
+        "last_called": "time.Time)",
         "last_call_status": "reached|failed",
     }
   ],
@@ -21,7 +21,8 @@ db={
     {
         "_id": 1,
         "status": "active|inactive|unknown",
-        "date": "unix.Now()",
+        "date": "time.Time",
+        "next_action": "time.Time",
         "area_id": 1,
     }
   ],
@@ -29,7 +30,7 @@ db={
     {
         "_id": 1,
         "sid": "string",
-        "time": "unix.Now()",
+        "time": "time.Time)",
         "status": "good|fail",
         "status_verbose": "Number was reached",
         "cost": "0.01 USD",
@@ -40,7 +41,7 @@ db={
     {
         "_id": 1,
         "transcript": "My transcript",
-        "date": "unix.Now()",
+        "date": "time.Time)",
         "cost": "unknown",
         "number_id": 1,
         "hx_area_id": 1,
