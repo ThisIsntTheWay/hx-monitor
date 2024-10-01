@@ -14,6 +14,7 @@ db={
         "_id": 1,
         "full_name": "Interlaken TMA 1",
         "area": "interlaken-tma-1",
+        "next_action": "time.Time",
         "number_id": 1
     }
   ],
@@ -22,7 +23,6 @@ db={
         "_id": 1,
         "status": "active|inactive|unknown",
         "date": "time.Time",
-        "next_action": "time.Time",
         "area_id": 1,
     }
   ],
