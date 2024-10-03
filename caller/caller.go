@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/thisisnttheway/hx-checker/callback"
 	"github.com/thisisnttheway/hx-checker/db"
 	"github.com/thisisnttheway/hx-checker/logger"
 	"github.com/thisisnttheway/hx-checker/models"
@@ -67,9 +68,10 @@ func GetNumbers() []models.Number {
 // Call a number
 func Call(number string) (CallResponse, error) {
 	client := constructClient()
+
 	twilioCallFrom := os.Getenv("TWILIO_CALL_FROM")
 	if twilioCallFrom == "" {
-		logger.LogErrorFatal("CALLER", "Twilio call from number missing in environment variables")
+		logger.LogErrorFatal("CALLER", "TWILIO_CALL_FROM not set")
 	}
 
 	targetNumber := fmt.Sprintf("+41%s", number)
@@ -79,6 +81,8 @@ func Call(number string) (CallResponse, error) {
 	params.SetFrom(twilioCallFrom)
 	params.SetTimeout(10)
 	params.SetTimeLimit(30)
+	params.SetStatusCallback(callback.CallbackUrl + "/call")
+	params.SetStatusCallbackEvent([]string{"initiated", "answered", "completed"})
 
 	resp, err := client.Api.CreateCall(params)
 	if err != nil {
@@ -116,15 +120,10 @@ func Call(number string) (CallResponse, error) {
 func CreateLiveTranscription(sid string) (TranscriptResponse, error) {
 	client := constructClient()
 
-	callbackUrl := os.Getenv("TWILIO_CALLBACK_URL")
-	if callbackUrl == "" {
-		logger.LogErrorFatal("CALLER", "Env var TWILIO_CALLBACK_URL is unset")
-	}
-
 	params := &twilioApi.CreateRealtimeTranscriptionParams{}
 	params.SetLanguageCode("en-US")
 	params.SetTrack("inbound_track")
-	params.SetStatusCallbackUrl(callbackUrl)
+	params.SetStatusCallbackUrl(callback.CallbackUrl + "/transcript")
 	params.SetHints("expect, active, inactive, ctr, tma")
 
 	resp, err := client.Api.CreateRealtimeTranscription(sid, params)
