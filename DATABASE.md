@@ -32,7 +32,6 @@ db={
       "sid": "string",
       "time": "time.Time",
       "status": "good|fail",
-      "status_verbose": "Number was reached",
       "cost": "0.01 USD",
       "number_id": 1
     }

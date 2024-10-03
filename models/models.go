@@ -30,13 +30,12 @@ type HXStatus struct {
 }
 
 type Call struct {
-	ID            primitive.ObjectID `bson:"_id"`
-	SID           string             `bson:"sid"`
-	Time          time.Time          `bson:"time"`
-	Status        string             `bson:"status"`
-	StatusVerbose string             `bson:"status_verbose"`
-	Cost          string             `bson:"cost"`
-	NumberID      int                `bson:"number_id"`
+	ID       primitive.ObjectID `bson:"_id"`
+	SID      string             `bson:"sid"`
+	Time     time.Time          `bson:"time"`
+	Status   string             `bson:"status"`
+	Cost     string             `bson:"cost"`
+	NumberID int                `bson:"number_id"`
 }
 
 type Transcript struct {
