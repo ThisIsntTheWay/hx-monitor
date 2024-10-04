@@ -1,0 +1,49 @@
+[
+    {
+        "hx_area": "meiringen",
+        "transcript": "meiringen ctr and tma are not active\nexpect ctr and tma meiringen to be active again tomorrow from 7 30 local time\nif you hear this message after 7 30 local time, contact ...",
+        "expectedVerdict": "AREA_NOT_ACTIVE",
+        "expectedHxAreasActiveStatus": [
+            {"1": false},
+            {"2": false},
+            {"3": false},
+            {"4": false},
+            {"5": false},
+            {"6": false},
+            {"ctr": false}
+        ],
+        "expectedNextAction": "Tomorrow at 07:30",
+        "expectedNextActionCode": "time.Date(now.Year(), now.Month(), now.Day()+1, 7, 30, 0, 0, now.Location())"
+    },
+    {
+        "hx_area": "meiringen",
+        "transcript": "meiringen ctr and tma are not active\nexpect ctr and tma meiringen to be active again next monday from 7 30 local time\nif you hear this message on monday after 7 30 local time, contact ...",
+        "expectedVerdict": "AREA_NOT_ACTIVE",
+        "expectedHxAreasActiveStatus": [
+            {"1": false},
+            {"2": false},
+            {"3": false},
+            {"4": false},
+            {"5": false},
+            {"6": false},
+            {"ctr": false}
+        ],
+        "expectedNextAction": "Next monday at 07 30",
+        "expectedNextActionCode": "nextMonday := time.Now();for nextMonday.Weekday() != time.Monday {nextMonday = nextMonday.AddDate(0, 0, 1)}\nnextMonday = time.Date(nextMonday.Year(), nextMonday.Month(), nextMonday.Day(), 7, 30, 0, 0, nextMonday.Location())"
+    },
+    {
+        "hx_area": "meiringen",
+        "transcript": "this message is updated at 7 30, 13 15 and 17 05 local time\ntodays flight operating hours are from 7 30 (un)til(l) 12 15 local time and from 13 00 to 17 15 local time\nmeiringen ctr and ALL tma sectors are active",
+        "expectedVerdict": "AREA_FULLY_ACTIVE",
+        "expectedHxAreasActiveStatus": [
+            {"1": true},
+            {"2": true},
+            {"3": true},
+            {"4": true},
+            {"5": true},
+            {"6": true},
+            {"ctr": true}
+        ],
+        "expectedNextAction": "Today at 13:15 / Today at 17:05"
+    }
+]
