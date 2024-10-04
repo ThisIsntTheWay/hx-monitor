@@ -13,7 +13,7 @@ db.hx_areas.drop()
 db.numbers.insertMany([
     {
         name: "meiringen",
-        number: "0-800-496-347"
+        number: "+41800496347"
     }
 ])
 
