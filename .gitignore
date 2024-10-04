@@ -6,4 +6,4 @@ hx-checker
 
 # Other
 .env
-**/*utput.json
+**/*utput*.json
