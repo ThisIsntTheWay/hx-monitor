@@ -65,8 +65,8 @@ func GetNumbers() []models.Number {
 	return results
 }
 
-// Call a number
-func Call(number string) (CallResponse, error) {
+// Call a number and optionally start a live transcription
+func Call(number string, startTranscription bool) (CallResponse, error) {
 	client := constructClient()
 
 	twilioCallFrom := os.Getenv("TWILIO_CALL_FROM")
@@ -83,6 +83,16 @@ func Call(number string) (CallResponse, error) {
 	params.SetTimeLimit(30)
 	params.SetStatusCallback(callback.CallbackUrl + "/call")
 	params.SetStatusCallbackEvent([]string{"initiated", "answered", "completed"})
+
+	if startTranscription {
+		transcriptionHints := "active,inactive,Meiringen,CTR,TMA"
+		twiMl := fmt.Sprintf(
+			"<Response><Start><Transcription hints='%s' statusCallbackUrl='%s'/></Start><Pause length='30'/></Response>",
+			transcriptionHints,
+			callback.CallbackUrl+"/transcription",
+		)
+		params.SetTwiml(twiMl)
+	}
 
 	resp, err := client.Api.CreateCall(params)
 	if err != nil {
@@ -113,48 +123,6 @@ func Call(number string) (CallResponse, error) {
 
 		slog.Info("CALLER", "message", fmt.Sprintf("Success calling %s: %T", targetNumber, returnObj))
 		return returnObj, nil
-	}
-}
-
-// Create a live transcription resource for a given call SID
-func CreateLiveTranscription(sid string) (TranscriptResponse, error) {
-	client := constructClient()
-
-	params := &twilioApi.CreateRealtimeTranscriptionParams{}
-	params.SetLanguageCode("en-US")
-	params.SetTrack("inbound_track")
-	params.SetStatusCallbackUrl(callback.CallbackUrl + "/transcript")
-	params.SetHints("expect, active, inactive, ctr, tma")
-
-	resp, err := client.Api.CreateRealtimeTranscription(sid, params)
-	if err != nil {
-		slog.Error("CALLER", "action", "create", "sid", sid, "error", err.Error())
-		return TranscriptResponse{}, err
-	} else {
-		returnObj := TranscriptResponse{
-			SID:    *resp.Sid,
-			Status: *resp.Status,
-			URI:    *resp.Uri,
-		}
-
-		slog.Info("CALLER", "action", "create", "sid", sid, "response", returnObj)
-		return returnObj, nil
-	}
-}
-
-// Stop a live transcription resource for a given transciption and call SID
-func StopLiveTranscription(sid string, callSid string) bool {
-	client := constructClient()
-
-	params := &twilioApi.UpdateRealtimeTranscriptionParams{}
-	params.SetStatus("stopped")
-
-	resp, err := client.Api.UpdateRealtimeTranscription(callSid, sid, params)
-	if err != nil {
-		slog.Error("CALLER", "action", "stop", "sid", sid, "error", err.Error())
-		return false
-	} else {
-		return *resp.Status == "stopped"
 	}
 }
 
