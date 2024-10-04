@@ -2,12 +2,11 @@ package callback
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"time"
 
@@ -31,17 +30,18 @@ type StatusCallback struct {
 	Timestamp      time.Time // only when status = completed
 }
 
-type TranscriptionMessage struct {
+type TranscriptionRequest struct {
 	LanguageCode       string `json:"LanguageCode"`
 	TranscriptionSid   string `json:"TranscriptionSid"`
+	PartialResults     bool   `json:"PartialResults"`
 	TranscriptionEvent string `json:"TranscriptionEvent"`
 	CallSid            string `json:"CallSid"`
 	TranscriptionData  string `json:"TranscriptionData"`
 	Timestamp          string `json:"Timestamp"`
-	Final              string `json:"Final"`
 	AccountSid         string `json:"AccountSid"`
 	Track              string `json:"Track"`
-	SequenceId         string `json:"SequenceId"`
+	Final              bool   `json:"Final"`
+	SequenceId         int    `json:"SequenceId"`
 }
 
 type TranscriptionData struct {
@@ -103,8 +103,9 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Error parsing form", http.StatusBadRequest)
 		return
 	}
 
@@ -115,47 +116,73 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Unable to read request body", http.StatusBadRequest)
-		return
+	var transcription TranscriptionRequest
+	transcription.LanguageCode = r.FormValue("LanguageCode")
+	transcription.TranscriptionSid = r.FormValue("TranscriptionSid")
+	transcription.TranscriptionEvent = r.FormValue("TranscriptionEvent")
+	transcription.CallSid = r.FormValue("CallSid")
+	transcription.TranscriptionData = r.FormValue("TranscriptionData")
+	transcription.Timestamp = r.FormValue("Timestamp")
+	transcription.Track = r.FormValue("Track")
+	transcription.Final = r.FormValue("Final") == "true"
+	transcription.SequenceId = int(r.FormValue("SequenceId")[0])
+
+	var logFields []interface{}
+	logFields = append(logFields, "event", transcription.TranscriptionEvent)
+	logFields = append(logFields, "transcriptionSid", transcription.TranscriptionSid)
+	logFields = append(logFields, "callSid", transcription.CallSid)
+
+	// Handle event types
+	switch transcription.TranscriptionEvent {
+	case "transcription-started":
+		logFields = append(logFields, "startTime", transcription.Timestamp)
+	case "transcription-content":
+		logFields = append(logFields, "transcriptionContent", transcription.TranscriptionData)
+	case "transcription-stopped":
+		finalTranscript := handleTranscriptionStopped(transcription)
+		logFields = append(logFields, "endTime", transcription.Timestamp)
+		logFields = append(logFields, "finalTranscript", finalTranscript)
 	}
 
-	var transcriptionMessage TranscriptionMessage
-	if err := json.Unmarshal(body, &transcriptionMessage); err != nil {
-		slog.Error("CALLBACK", "message", "Received bad/no JSON", "error", err.Error())
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
+	slog.Info("CALLBACK", logFields...)
 
-	if transcriptionMessage.TranscriptionEvent == "transcription-content" {
-		var transcriptionData TranscriptionData
-		if err := json.Unmarshal([]byte(transcriptionMessage.TranscriptionData), &transcriptionData); err != nil {
-			msg := "Failed to parse TranscriptionData"
-			slog.Error("CALLBACK", "message", msg, "error", err.Error())
-			http.Error(w, msg, http.StatusBadRequest)
-			return
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Event received"))
+}
+
+var transcriptionRequests []TranscriptionRequest
+
+// Assemble a completed transcription by its individual parts and return it
+func handleTranscriptionStopped(finalTranscription TranscriptionRequest) string {
+	// Filter array for all items whose "callSid" matches the final transcription's callSid and sort
+	var transcriptionContents []TranscriptionRequest
+	for _, request := range transcriptionRequests {
+		if request.CallSid == finalTranscription.CallSid {
+			if request.TranscriptionEvent == "transcription-content" {
+				transcriptionContents = append(transcriptionContents, request)
+			}
 		}
-
-		slog.Info(
-			"CALLBACK",
-			"message", "Got transcript",
-			"callSid", transcriptionMessage.CallSid,
-			"final", transcriptionMessage.Final,
-			"timestamp", transcriptionMessage.Timestamp,
-			"confidence", transcriptionData.Confidence,
-			"transcript", transcriptionData.Transcript,
-		)
-
-		// ToDo: Store transcript in DB
-		// ToDo: Analyze transcript
-
-		w.WriteHeader(http.StatusOK)
-		return
-	} else {
-		http.Error(w, "Invalid TranscriptionEvent", http.StatusBadRequest)
-		return
 	}
+
+	sort.SliceStable(transcriptionContents, func(i, j int) bool {
+		return transcriptionContents[i].SequenceId < transcriptionContents[j].SequenceId
+	})
+
+	var fullTranscription string
+	for _, content := range transcriptionContents {
+		fullTranscription += content.TranscriptionData + "\n"
+	}
+
+	// Delete all requests with the same callSid and reassemble array
+	var remainingRequests []TranscriptionRequest
+	for _, request := range transcriptionRequests {
+		if request.CallSid != finalTranscription.CallSid {
+			remainingRequests = append(remainingRequests, request)
+		}
+	}
+	transcriptionRequests = remainingRequests
+
+	return fullTranscription
 }
 
 // Start callback webserver

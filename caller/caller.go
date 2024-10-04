@@ -28,12 +28,6 @@ type CallResponse struct {
 	PriceUnit   string
 }
 
-type TranscriptResponse struct {
-	SID    string
-	Status string
-	URI    string
-}
-
 // Construct Twilio API client
 func constructClient() *twilio.RestClient {
 	accountSid := os.Getenv("TWILIO_ACCOUNT_SID")
