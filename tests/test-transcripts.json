@@ -33,7 +33,7 @@
     },
     {
         "hx_area": "meiringen",
-        "transcript": "this message is updated at 7 30, 13 15 and 17 05 local time\ntodays flight operating hours are from 7 30 (un)til(l) 12 15 local time and from 13 00 to 17 15 local time\nmeiringen ctr and ALL tma sectors are active",
+        "transcript": "this message is updated at 7 30, 13 15 and 17 05 local time\ntodays flight operating hours are from 7 30 till 12 15 local time and from 13 00 to 17 15 local time\nmeiringen ctr and ALL tma sectors are active",
         "expectedVerdict": "AREA_FULLY_ACTIVE",
         "expectedHxAreasActiveStatus": [
             {"1": true},
@@ -42,6 +42,38 @@
             {"4": true},
             {"5": true},
             {"6": true},
+            {"ctr": true}
+        ],
+        "expectedNextAction": "Today at 13:15 / Today at 17:05"
+    },
+    {
+        "hx_area": "meiringen",
+        "transcript": "this message is updated at 7 30, 13 15 and 17 05 local time\ntodays flight operating hours are from 7 30 til 18 15 local time\nduring the flight operation hours, meiringen ctr and tma sectors 1, 2 and 3 can be activated any time\ntma sectors 4, 5 and 6 remain deactivated until the next update\nmeiringen CTR and TMA are currently not active",
+        "additionalNote": "English announcement took 38 seconds",
+        "expectedVerdict": "AREA_NOT_ACTIVE",
+        "expectedHxAreasActiveStatus": [
+            {"1": false},
+            {"2": false},
+            {"3": false},
+            {"4": false},
+            {"5": false},
+            {"6": false},
+            {"ctr": false}
+        ],
+        "expectedNextAction": "Today at 13:15 / Today at 17:05"
+    },
+    {
+        "hx_area": "meiringen",
+        "transcript": "this message is updated at 7 30, 13 15 and 17 05 local time\ntodays flight operating hours are from 7 30 til 18 15 local time\nmeiringen ctr and tma 1, 2 and 3 are active\ntma sectors 4, 5 and 6 remain deactivated until the next update",
+        "additionalNote": "English announcement took 28 seconds",
+        "expectedVerdict": "AREA_PARTIALLY_ACTIVE",
+        "expectedHxAreasActiveStatus": [
+            {"1": true},
+            {"2": true},
+            {"3": true},
+            {"4": false},
+            {"5": false},
+            {"6": false},
             {"ctr": true}
         ],
         "expectedNextAction": "Today at 13:15 / Today at 17:05"
