@@ -1,23 +1,21 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 )
 
-// AirspaceStatus holds the status of the CTR and TMA areas
 type AirspaceStatus struct {
-	Areas      []Area `json:"areas"`
-	NextUpdate string `json:"nextUpdate"`
+	Areas      []Area    `json:"areas"`
+	NextUpdate time.Time `json:"nextUpdate"`
 }
 
-// Area represents the status and next update time of an airspace component
 type Area struct {
-	Name       string `json:"name"`
-	Status     bool   `json:"status"`
-	NextUpdate string `json:"nextUpdate"`
+	Index  int  `json:"index"`
+	Status bool `json:"status"`
 }
 
 type TimeSegment struct {
@@ -27,58 +25,74 @@ type TimeSegment struct {
 
 // parseTranscript parses the provided transcript and extracts the airspace status
 func parseAirspaceStates(transcript string) (AirspaceStatus, error) {
-	transcript = strings.ToLower(transcript)
-
-	// Regular expressions to capture information
-	statusRegex := regexp.MustCompile(`(meiringen\s+ctr\s+and\s+(all\s+tma\s+sectors|tma)\s+are\s+active|not\s+active)`)
-	//updateRegex := regexp.MustCompile(`updated\s+at\s+([\d\s:]+)`)
-	nextUpdateRegex := regexp.MustCompile(`next\s+update\s+(at\s+[\d\s:]+|monday\s+[\d\s:]+)`)
-	//operatingHoursRegex := regexp.MustCompile(`flight\s+operating\s+hours\s+are\s+from\s+([\d\s:]+)\s+till\s+([\d\s:]+)`)
-
 	// Default areas
 	areas := []Area{
-		{"Meiringen CTR", false, ""},
-		{"Meiringen TMA 1", false, ""},
-		{"Meiringen TMA 2", false, ""},
-		{"Meiringen TMA 3", false, ""},
-		{"Meiringen TMA 4", false, ""},
-		{"Meiringen TMA 5", false, ""},
-		{"Meiringen TMA 6", false, ""},
+		{0, false}, // CTR
+		{1, false}, // TMA n
+		{2, false},
+		{3, false},
+		{4, false},
+		{5, false},
+		{6, false},
 	}
 
-	// Set default next update time
-	nextUpdate := "Unknown"
+	transcript = strings.ToLower(transcript)
 
-	// Extract the status
-	statusMatch := statusRegex.FindStringSubmatch(transcript)
-	if len(statusMatch) > 0 {
-		status := strings.Contains(statusMatch[0], "active")
-		for i := range areas {
-			if status {
-				areas[i].Status = true
-			} else {
-				areas[i].Status = false
-			}
+	// If true, then transcript is from a time outside flight operating hours
+	// As such, all mentioned sectors are inactive
+	canBeActivated := strings.Contains(transcript, "can be")
+
+	// If true, then likely no areas will be active (weekend transcript)
+	hasMultipleCtrSubstrings := strings.Count(transcript, "ctr") > 1
+	var ctrSubstringIndex int
+	if hasMultipleCtrSubstrings {
+		ctrSubstringIndex = 0
+	} else {
+		ctrSubstringIndex = 1
+	}
+
+	// First split by CTR, then by keyword "active"
+	splitCtr := strings.Split(transcript, "ctr")
+	splitActive := strings.Split(splitCtr[ctrSubstringIndex], "active")
+	fmt.Printf("[i] splitCtr (%d): %v\n[i] splitActive (%d): %v\n", len(splitCtr), splitCtr, len(splitActive), splitActive)
+
+	// If contained in the first split segment, then no areas are active
+	hasAreNotActive := strings.Contains(splitCtr[0], "are not active")
+
+	everyTmaTargeted := strings.Contains(splitActive[0], "all tma")
+
+	fmt.Printf(
+		"[i] canBeActivated: %t | hasAreNotActive: %t | everyTmaTargeted: %t | hasMultipleCtrSubstrings: %t\n",
+		canBeActivated,
+		hasAreNotActive,
+		everyTmaTargeted,
+		hasMultipleCtrSubstrings,
+	)
+
+	if !canBeActivated && !everyTmaTargeted {
+		// CTR and specific TMAs are active
+		activeTmas := regexp.MustCompile(`\d`).FindAllString(splitActive[0], -1)
+		fmt.Printf("[i] Len of activeTmas (%v): %d\n", activeTmas, len(activeTmas))
+
+		for i := range activeTmas {
+			areas[i].Status = true
 		}
-	}
 
-	// Extract the next update time
-	nextUpdateMatch := nextUpdateRegex.FindStringSubmatch(transcript)
-	if len(nextUpdateMatch) > 0 {
-		nextUpdate = nextUpdateMatch[1]
-		nextUpdate = strings.ReplaceAll(nextUpdate, "at ", "")
-		nextUpdate = strings.TrimSpace(nextUpdate)
-	}
-
-	// Apply next update to all areas
-	for i := range areas {
-		areas[i].NextUpdate = nextUpdate
+		// CTR
+		areas[0].Status = true
+	} else if !hasAreNotActive && everyTmaTargeted {
+		// Eveything is active
+		for i := range areas {
+			areas[i].Status = true
+		}
+	} else if hasAreNotActive && everyTmaTargeted {
+		// Everything is inactive, therefore preserve defaults
 	}
 
 	// Return the parsed data
 	return AirspaceStatus{
 		Areas:      areas,
-		NextUpdate: nextUpdate,
+		NextUpdate: time.Unix(0, 0),
 	}, nil
 }
 
@@ -181,23 +195,45 @@ func ParseTimeSegments(transcript string) []TimeSegment {
 }
 
 func main() {
+	var transcripts []string
+
 	// Usual transcript
-	transcript1 := `this message is updated at 7 30, 13 15 and 17 05 local time
+	transcripts = append(transcripts, `this message is updated at 7 30, 13 15 and 17 05 local time
 	todays flight operating hours are from 7 30 till 12 15 local time and from 13 00 to 17 15 local time
-	meiringen ctr and ALL tma sectors are active`
+	meiringen ctr and ALL tma sectors are active`)
 
 	// Over the weekend
-	transcript2 := `Meiringen ctr and tma are not active
+	transcripts = append(transcripts, `Meiringen ctr and tma are not active
 	expect ctr and tma meiringen to be active again next monday through 7 30 local time.
-	if you hear this message on monday after 07 30 local time, contact...`
+	if you hear this message on monday after 07 30 local time, contact...`)
 
-	fmt.Println(transcript1)
-	ParseTimeSegments(transcript1)
+	// Usual transcript, partially active TMAs
+	transcripts = append(transcripts, `this message is updated at 7 30, 13 15 and 17 05 local time
+	todays flight operating hours are from 7 30 til 18 15 local time
+	meiringen ctr and tma 1, 2 and 3 are active
+	tma sectors 4, 5 and 6 remain deactivated until the next update`)
 
-	fmt.Println("")
-	fmt.Println("-----")
-	fmt.Println("")
+	var timeSegments []TimeSegment
+	var airspaceState AirspaceStatus
 
-	fmt.Println(transcript2)
-	ParseTimeSegments(transcript2)
+	for i, transcript := range transcripts {
+		fmt.Printf("\n---------------------[%d]---------------------\n", i+1)
+		fmt.Printf("[i] %s\n", transcript)
+
+		timeSegments = ParseTimeSegments(transcript)
+		airspaceState, _ = parseAirspaceStates(transcript)
+
+		var nextUpdateTime time.Time
+		now := time.Now()
+		for _, timeSegment := range timeSegments[0].Times {
+			if now.Before(timeSegment) {
+				nextUpdateTime = timeSegment
+			}
+		}
+
+		airspaceState.NextUpdate = nextUpdateTime
+
+		out, _ := json.Marshal(airspaceState)
+		fmt.Println(string(out))
+	}
 }
