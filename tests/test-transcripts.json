@@ -12,8 +12,8 @@
             {"6": false},
             {"ctr": false}
         ],
-        "expectedNextAction": "Tomorrow at 07:30",
-        "expectedNextActionCode": "time.Date(now.Year(), now.Month(), now.Day()+1, 7, 30, 0, 0, now.Location())"
+        "testingTimeAndDate": "2024-11-07 17:00:00 +0100 UTC+1",
+        "expectedNextAction": "2024-11-08 07:30:00 +0100 UTC+1"
     },
     {
         "hx_area": "meiringen",
@@ -28,8 +28,8 @@
             {"6": false},
             {"ctr": false}
         ],
-        "expectedNextAction": "Next monday at 07 30",
-        "expectedNextActionCode": "nextMonday := time.Now();for nextMonday.Weekday() != time.Monday {nextMonday = nextMonday.AddDate(0, 0, 1)}\nnextMonday = time.Date(nextMonday.Year(), nextMonday.Month(), nextMonday.Day(), 7, 30, 0, 0, nextMonday.Location())"
+        "testingTimeAndDate": "2024-11-07 17:00:00 +0100 UTC+1",
+        "expectedNextAction": "2024-11-11 07:30:00 +0100 UTC+1"
     },
     {
         "hx_area": "meiringen",
@@ -44,7 +44,8 @@
             {"6": true},
             {"ctr": true}
         ],
-        "expectedNextAction": "Today at 13:15 / Today at 17:05"
+        "testingTimeAndDate": "2024-11-07 06:30:50 +0100 UTC+1",
+        "expectedNextAction": "2024-11-07 13:15:00 +0100 UTC+1"
     },
     {
         "hx_area": "meiringen",
@@ -60,7 +61,8 @@
             {"6": false},
             {"ctr": false}
         ],
-        "expectedNextAction": "Today at 13:15 / Today at 17:05"
+        "testingTimeAndDate": "2024-11-07 13:59:50 +0100 UTC+1",
+        "expectedNextAction": "2024-11-07 17:05:00 +0100 UTC+1"
     },
     {
         "hx_area": "meiringen",
@@ -76,6 +78,7 @@
             {"6": false},
             {"ctr": true}
         ],
-        "expectedNextAction": "Today at 13:15 / Today at 17:05"
+        "testingTimeAndDate": "2024-11-07 17:04:59 +0100 UTC+1",
+        "expectedNextAction": "2024-11-07 17:05:00 +0100 UTC+1"
     }
 ]
