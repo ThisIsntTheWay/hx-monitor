@@ -14,8 +14,9 @@ import (
 )
 
 type AirspaceStatus struct {
-	Areas      []Area    `json:"areas"`
-	NextUpdate time.Time `json:"nextUpdate"`
+	Areas          []Area      `json:"areas"`
+	NextUpdate     time.Time   `json:"nextUpdate"`
+	OperatingHours []time.Time `json:"operatingHours"`
 }
 
 type Area struct {
@@ -28,12 +29,25 @@ type TimeSegment struct {
 	Times []time.Time
 }
 
+// ---- Testing -----
+type HxAreaTestJson struct {
+	HxArea                      string            `json:"hx_area"`
+	Transcript                  string            `json:"transcript"`
+	AdditionalNote              string            `json:"additionalNote"`
+	ExpectedVerdict             string            `json:"expectedVerdict"`
+	ExpectedHxAreasActiveStatus []map[string]bool `json:"expectedHxAreasActiveStatus"`
+	TestingTimeAndDate          time.Time         `json:"testingTimeAndDate"`
+	ExpectedNextAction          time.Time         `json:"expectedNextAction"`
+}
+
+// ------------------
+
 // parseTranscript parses the provided transcript and extracts the airspace status
-func parseAirspaceStates(transcript string) (AirspaceStatus, error) {
+func parseAirspaceStates(transcript string) AirspaceStatus {
 	// Default areas
 	areas := []Area{
 		{0, false}, // CTR
-		{1, false}, // TMA n
+		{1, false}, // TMA x
 		{2, false},
 		{3, false},
 		{4, false},
@@ -59,10 +73,10 @@ func parseAirspaceStates(transcript string) (AirspaceStatus, error) {
 	// First split by CTR, then by keyword "active"
 	splitCtr := strings.Split(transcript, "ctr")
 	splitActive := strings.Split(splitCtr[ctrSubstringIndex], "active")
-	//fmt.Printf("[i] splitCtr (%d): %v\n[i] splitActive (%d): %v\n", len(splitCtr), splitCtr, len(splitActive), splitActive)
+	fmt.Printf("[i] splitCtr (%d): %v\n[i] splitActive (%d): %v\n", len(splitCtr), splitCtr, len(splitActive), splitActive)
 
 	// If contained in the first split segment, then no areas are active
-	hasAreNotActive := strings.Contains(splitCtr[0], "are not active")
+	hasAreNotActive := strings.Contains(transcript, "are not active")
 
 	everyTmaTargeted := strings.Contains(splitActive[0], "all tma")
 
@@ -74,13 +88,13 @@ func parseAirspaceStates(transcript string) (AirspaceStatus, error) {
 		hasMultipleCtrSubstrings,
 	)
 
-	if !canBeActivated && !everyTmaTargeted {
+	if !canBeActivated && !everyTmaTargeted && !hasAreNotActive {
 		// CTR and specific TMAs are active
 		activeTmas := regexp.MustCompile(`\d`).FindAllString(splitActive[0], -1)
 		fmt.Printf("[i] Len of activeTmas (%v): %d\n", activeTmas, len(activeTmas))
 
 		for i := range activeTmas {
-			areas[i].Status = true
+			areas[i+1].Status = true
 		}
 
 		// CTR
@@ -90,7 +104,7 @@ func parseAirspaceStates(transcript string) (AirspaceStatus, error) {
 		for i := range areas {
 			areas[i].Status = true
 		}
-	} else if hasAreNotActive && everyTmaTargeted {
+	} else if hasAreNotActive {
 		// Everything is inactive, therefore preserve defaults
 	}
 
@@ -98,7 +112,7 @@ func parseAirspaceStates(transcript string) (AirspaceStatus, error) {
 	return AirspaceStatus{
 		Areas:      areas,
 		NextUpdate: time.Unix(0, 0),
-	}, nil
+	}
 }
 
 func parseTimeToCurrentDate(timeString string) (time.Time, error) {
@@ -119,15 +133,15 @@ func parseTimeToCurrentDate(timeString string) (time.Time, error) {
 	return finalTime, nil
 }
 
-// Extract time segments
-func ParseTimeSegments(transcript string) []TimeSegment {
-	patternTimeSegments := `(\d{1,2}[: ]\d{2})`
+// Extract time segments; Next updates and flight operating hours
+func parseTimeSegments(transcript string) []TimeSegment {
+	patternTimeSegments := `\d{1,2}[: ]\d{2}`
 
-	// Split all time segments by the "local time" substring
-	// segment 1: Message update times
-	// segment 2: Flight operating hours morning
-	// segment 3: Flight operating hours evening
-	// [[t1, t2], [t1, t2], [t1, t2]]
+	// Split all time segments by the "local time" substring.
+	// Segment 1: Message update times,
+	// Segment 2: Flight operating hours morning,
+	// Segment 3: Flight operating hours evening,
+	// Format: [[t1, t2], [t1, t2], [t1, t2]]
 	var timeSegments [][]time.Time
 
 	/*
@@ -140,28 +154,29 @@ func ParseTimeSegments(transcript string) []TimeSegment {
 
 	splitLocalTime := strings.Split(transcript, "local time")
 	for i, split := range splitLocalTime {
+		trimmed := strings.TrimSpace(split)
 		if onlyOneUpdateTime && i == 1 {
 			continue
 		}
 
-		trimmed := strings.TrimSpace(split)
 		if regexp.MustCompile(`\d`).MatchString(trimmed) {
 			re := regexp.MustCompile(patternTimeSegments)
 			matches := re.FindAllStringSubmatch(trimmed, -1)
 
-			// Parse each time segment within local time segment
+			// Parse each time segment within local time segment, but only if we have any matches at alls
+			if len(matches) < 1 {
+				continue
+			}
+
 			var segments []time.Time
 			for _, match := range matches {
-				times := regexp.MustCompile(`\d{1,2}[: ]\d{2}`).FindAllString(match[1], -1)
-				for _, timeString := range times {
-					replacedString := strings.Replace(timeString, " ", ":", 1)
-					convertedTime, err := parseTimeToCurrentDate(replacedString)
-					if err != nil {
-						panic(err)
-					}
-
-					segments = append(segments, convertedTime)
+				replacedString := strings.Replace(match[0], " ", ":", 1)
+				convertedTime, err := parseTimeToCurrentDate(replacedString)
+				if err != nil {
+					panic(err)
 				}
+
+				segments = append(segments, convertedTime)
 			}
 
 			timeSegments = append(timeSegments, segments)
@@ -170,44 +185,64 @@ func ParseTimeSegments(transcript string) []TimeSegment {
 
 	var rO []TimeSegment
 	if onlyOneUpdateTime {
+		// If yes, then the update time will be on a future day
 		// ToDo: handle next update time not necessarily being on monday
 		daysUntilMonday := (int(time.Monday) - int(timeSegments[0][0].Weekday()) + 7) % 7
-		/*fmt.Printf("monday: %d | weekday: %d | modulod weekday: %d | daysUntilMonday: %d\n",
-			int(time.Monday),
-			int(timeSegments[0][0].Weekday()+7),
-			int(timeSegments[0][0].Weekday()+7)%7,
-			daysUntilMonday,
-		)*/
 
 		if daysUntilMonday == 0 {
 			daysUntilMonday = 7
 		}
 
 		timeSegments[0][0] = timeSegments[0][0].AddDate(0, 0, daysUntilMonday)
-
-		{
-			rO = append(rO, TimeSegment{Type: "UpdateTimes", Times: timeSegments[0]})
-		}
-
 	} else {
-		rO = append(rO, TimeSegment{Type: "UpdateTimes", Times: timeSegments[0]})
-		rO = append(rO, TimeSegment{Type: "OperatingHoursMorning", Times: timeSegments[1]})
-		if len(timeSegments) > 2 {
-			rO = append(rO, TimeSegment{Type: "OperatingHoursAfternoon", Times: timeSegments[2]})
+		var operatingHours []time.Time
+		for i := range timeSegments {
+			// Skip first timeSegment, the update times
+			if i > 0 {
+				operatingHours = append(operatingHours, timeSegments[i]...)
+			}
 		}
+
+		rO = append(rO, TimeSegment{Type: "OperatingHours", Times: operatingHours})
 	}
 
+	rO = append(rO, TimeSegment{Type: "UpdateTimes", Times: timeSegments[0]})
 	return rO
 }
 
-type HxAreaTestJson struct {
-	HxArea                      string            `json:"hx_area"`
-	Transcript                  string            `json:"transcript"`
-	AdditionalNote              string            `json:"additionalNote"`
-	ExpectedVerdict             string            `json:"expectedVerdict"`
-	ExpectedHxAreasActiveStatus []map[string]bool `json:"expectedHxAreasActiveStatus"`
-	TestingTimeAndDate          time.Time         `json:"testingTimeAndDate"`
-	ExpectedNextAction          time.Time         `json:"expectedNextAction"`
+func ParseTranscript(transcript string) AirspaceStatus {
+	var timeSegments []TimeSegment
+	var airspaceState AirspaceStatus
+
+	timeSegments = parseTimeSegments(transcript)
+	airspaceState = parseAirspaceStates(transcript)
+
+	// Assign time segments
+	var updateTimeTimeSegment TimeSegment
+	var operatingHoursTimeSegment TimeSegment
+	for _, segment := range timeSegments {
+		if segment.Type == "UpdateTimes" {
+			updateTimeTimeSegment = segment
+		} else if segment.Type == "OperatingHours" {
+			operatingHoursTimeSegment = segment
+		}
+	}
+
+	var nextUpdateTime time.Time
+	now := time.Now()
+	for _, segment := range updateTimeTimeSegment.Times {
+		if now.Before(segment) {
+			nextUpdateTime = segment
+		}
+	}
+
+	airspaceState.NextUpdate = nextUpdateTime
+	airspaceState.OperatingHours = operatingHoursTimeSegment.Times
+
+	o, _ := json.Marshal(airspaceState)
+	color.Yellow(fmt.Sprintf("%v", string(o)))
+
+	return airspaceState
 }
 
 func main() {
@@ -215,49 +250,29 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 	defer jsonFile.Close()
 
-	var hxStatuses []HxAreaTestJson
+	var hxTestStatuses []HxAreaTestJson
 	j, _ := io.ReadAll(jsonFile)
-
-	if err := json.Unmarshal(j, &hxStatuses); err != nil {
+	if err := json.Unmarshal(j, &hxTestStatuses); err != nil {
 		panic(err)
 	}
 
-	// Conduct tests on testing JSON
-	var timeSegments []TimeSegment
-	var airspaceState AirspaceStatus
-
 	var mismatches int
-
-	for i, hxStatus := range hxStatuses {
+	for i, hxTestStatus := range hxTestStatuses {
 		fmt.Printf("\n---------------------[%d]---------------------\n", i+1)
-		fmt.Printf("- Transcript: %s\n", hxStatus.Transcript)
-		fmt.Printf("- Testing time: %s\n", hxStatus.TestingTimeAndDate)
-		fmt.Printf("- Expected next action: %s\n", hxStatus.ExpectedNextAction)
-		fmt.Printf("- Expected HX area statuses: %v\n", hxStatus.ExpectedHxAreasActiveStatus)
+		fmt.Printf("- Transcript: %s\n", hxTestStatus.Transcript)
+		fmt.Printf("- Testing time: %s\n", hxTestStatus.TestingTimeAndDate)
+		fmt.Printf("- Expected next action: %s\n", hxTestStatus.ExpectedNextAction)
+		fmt.Printf("- Expected HX area statuses: %v\n", hxTestStatus.ExpectedHxAreasActiveStatus)
 
-		//testingTime := hxStatus.TestingTimeAndDate
-
-		timeSegments = ParseTimeSegments(hxStatus.Transcript)
-		airspaceState, _ = parseAirspaceStates(hxStatus.Transcript)
-
-		var nextUpdateTime time.Time
-		now := time.Now()
-		for _, timeSegment := range timeSegments[0].Times {
-			if now.Before(timeSegment) {
-				nextUpdateTime = timeSegment
-			}
-		}
-
-		airspaceState.NextUpdate = nextUpdateTime
+		airspaceState := ParseTranscript(hxTestStatus.Transcript)
 
 		// Verify
 		for _, area := range airspaceState.Areas {
 			// Roundabout way of acquiring our expected HS status
 			var expectedAreaStatus bool
-			for _, m := range hxStatus.ExpectedHxAreasActiveStatus {
+			for _, m := range hxTestStatus.ExpectedHxAreasActiveStatus {
 				if val, exists := m[strconv.Itoa(area.Index)]; exists {
 					expectedAreaStatus = val
 					break
