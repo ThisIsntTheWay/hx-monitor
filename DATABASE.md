@@ -9,21 +9,22 @@ db={
       "last_call_status": "reached|failed",
     }
   ],
+  "hx_areas": [
+    {
+      "_id": 1,
+      "name": "meiringen",
+      "next_action": "time.Time",
+      "last_action": "time.Time",
+      "number_name": "meiringen"
+    }
+  ],
   "hx_sub_areas": [
     {
       "_id": 1,
       "full_name": "Meiringen TMA 1",
-      "area": "meiringen-tma-1",
-      "next_action": "time.Time",
-      "number_name": "meiringen"
-    }
-  ],
-  "hx_status": [
-    {
-      "_id": 1,
+      "name": "meiringen-tma-1",
       "status": "active|inactive|unknown",
-      "date": "time.Time",
-      "area_id": 1,
+      "area_reference": "meiringen"
     }
   ],
   "calls": [

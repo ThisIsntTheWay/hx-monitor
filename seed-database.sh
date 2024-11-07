@@ -9,6 +9,7 @@ db = conn.getDB("hx");
 
 db.numbers.drop()
 db.hx_areas.drop()
+db.hx_sub_areas.drop()
 
 db.numbers.insertMany([
     {
@@ -19,40 +20,47 @@ db.numbers.insertMany([
 
 db.hx_areas.insertMany([
     {
-        full_name: "Meiringen TMA 1",
-        area: "meiringen-tma-1",
+        name: "meiringen",
         number_name: "meiringen"
+    },
+])
+
+db.hx_sub_areas.insertMany([
+    {
+        full_name: "Meiringen CTR",
+        name: "meiringen-ctr",
+        area_reference: "meiringen"
+    },
+    {
+        full_name: "Meiringen TMA 1",
+        name: "meiringen-tma-1",
+        area_reference: "meiringen"
     },
     {
         full_name: "Meiringen TMA 2",
-        area: "meiringen-tma-2",
-        number_name: "meiringen"
+        name: "meiringen-tma-2",
+        area_reference: "meiringen"
     },
     {
         full_name: "Meiringen TMA 3",
-        area: "meiringen-tma-3",
-        number_name: "meiringen"
+        name: "meiringen-tma-3",
+        area_reference: "meiringen"
     },
     {
         full_name: "Meiringen TMA 4",
-        area: "meiringen-tma-4",
-        number_name: "meiringen"
+        name: "meiringen-tma-4",
+        area_reference: "meiringen"
     },
     {
         full_name: "Meiringen TMA 5",
-        area: "meiringen-tma-5",
-        number_name: "meiringen"
+        name: "meiringen-tma-5",
+        area_reference: "meiringen"
     },
     {
         full_name: "Meiringen TMA 6",
-        area: "meiringen-tma-6",
-        number_name: "meiringen"
-    },
-    {
-        full_name: "Meiringen CTX",
-        area: "meiringen-ctx",
-        number_name: "meiringen"
-    },
+        name: "meiringen-tma-6",
+        area_reference: "meiringen"
+    }
 ])
 
 EOF

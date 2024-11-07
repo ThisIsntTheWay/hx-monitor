@@ -16,17 +16,18 @@ type Number struct {
 
 type HXArea struct {
 	ID         primitive.ObjectID `bson:"_id"`
-	FullName   string             `bson:"full_name"`
-	Area       string             `bson:"area"`
+	Name       string             `bson:"name"`
 	NextAction time.Time          `bson:"next_action"`
+	LastAction time.Time          `bson:"last_action"`
 	NumberName string             `bson:"number_name"`
 }
 
-type HXStatus struct {
-	ID     primitive.ObjectID `bson:"_id"`
-	Status string             `bson:"status"`
-	Date   time.Time          `bson:"date"`
-	AreaID int                `bson:"area_id"`
+type HXSubAreas struct {
+	ID           primitive.ObjectID `bson:"_id"`
+	Fullname     string             `bson:"full_name"`
+	Name         string             `bson:"name"`
+	Status       string             `bson:"status"`
+	AreaRefernce string             `bson:"area_reference"`
 }
 
 type Call struct {
