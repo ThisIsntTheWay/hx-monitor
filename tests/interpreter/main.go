@@ -73,25 +73,28 @@ func parseAirspaceStates(transcript string) AirspaceStatus {
 	// First split by CTR, then by keyword "active"
 	splitCtr := strings.Split(transcript, "ctr")
 	splitActive := strings.Split(splitCtr[ctrSubstringIndex], "active")
-	fmt.Printf("[i] splitCtr (%d): %v\n[i] splitActive (%d): %v\n", len(splitCtr), splitCtr, len(splitActive), splitActive)
+
+	// Debug
+	//fmt.Sprintf("[i] splitCtr (%d): %v\n[i] splitActive (%d): %v\n", len(splitCtr), splitCtr, len(splitActive), splitActive)
 
 	// If contained in the first split segment, then no areas are active
 	hasAreNotActive := strings.Contains(transcript, "are not active")
 
 	everyTmaTargeted := strings.Contains(splitActive[0], "all tma")
 
-	fmt.Printf(
+	/* DEBUG
+	fmt.Sprintf(
 		"[i] canBeActivated: %t | hasAreNotActive: %t | everyTmaTargeted: %t | hasMultipleCtrSubstrings: %t\n",
 		canBeActivated,
 		hasAreNotActive,
 		everyTmaTargeted,
 		hasMultipleCtrSubstrings,
 	)
+	*/
 
 	if !canBeActivated && !everyTmaTargeted && !hasAreNotActive {
 		// CTR and specific TMAs are active
 		activeTmas := regexp.MustCompile(`\d`).FindAllString(splitActive[0], -1)
-		fmt.Printf("[i] Len of activeTmas (%v): %d\n", activeTmas, len(activeTmas))
 
 		for i := range activeTmas {
 			areas[i+1].Status = true
@@ -210,7 +213,7 @@ func parseTimeSegments(transcript string) []TimeSegment {
 	return rO
 }
 
-func ParseTranscript(transcript string) AirspaceStatus {
+func ParseTranscript(transcript string, referenceTime time.Time) AirspaceStatus {
 	var timeSegments []TimeSegment
 	var airspaceState AirspaceStatus
 
@@ -229,10 +232,10 @@ func ParseTranscript(transcript string) AirspaceStatus {
 	}
 
 	var nextUpdateTime time.Time
-	now := time.Now()
 	for _, segment := range updateTimeTimeSegment.Times {
-		if now.Before(segment) {
+		if referenceTime.Before(segment) {
 			nextUpdateTime = segment
+			break
 		}
 	}
 
@@ -263,12 +266,14 @@ func main() {
 		fmt.Printf("\n---------------------[%d]---------------------\n", i+1)
 		fmt.Printf("- Transcript: %s\n", hxTestStatus.Transcript)
 		fmt.Printf("- Testing time: %s\n", hxTestStatus.TestingTimeAndDate)
-		fmt.Printf("- Expected next action: %s\n", hxTestStatus.ExpectedNextAction)
-		fmt.Printf("- Expected HX area statuses: %v\n", hxTestStatus.ExpectedHxAreasActiveStatus)
 
-		airspaceState := ParseTranscript(hxTestStatus.Transcript)
+		airspaceState := ParseTranscript(
+			hxTestStatus.Transcript,
+			hxTestStatus.TestingTimeAndDate,
+		)
 
-		// Verify
+		// Verification
+		// Areas
 		for _, area := range airspaceState.Areas {
 			// Roundabout way of acquiring our expected HS status
 			var expectedAreaStatus bool
@@ -298,6 +303,19 @@ func main() {
 			)
 
 			verdictColor.Println(verdict)
+		}
+
+		// Times
+		// MUST HAVE PROPER TZ ENV VAR (Europe/Zurich)
+		fmt.Printf(
+			"Next action (%s) is as expected (%s): ",
+			airspaceState.NextUpdate,
+			hxTestStatus.ExpectedNextAction,
+		)
+		if airspaceState.NextUpdate.Equal(hxTestStatus.ExpectedNextAction) {
+			color.Green("Yes")
+		} else {
+			color.Red("No")
 		}
 	}
 
