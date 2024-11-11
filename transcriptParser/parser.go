@@ -2,6 +2,7 @@ package transcriptParser
 
 import (
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strings"
 	"time"
@@ -50,6 +51,10 @@ func parseAirspaceStates(transcript string) AirspaceStatus {
 	}
 
 	transcript = strings.ToLower(transcript)
+
+	// Correct twilio transcription mistakes
+	transcript = strings.Replace(transcript, "my ring", "meiringen", -1)
+	transcript = strings.Replace(transcript, "pma", "tma", -1)
 
 	// If true, then transcript is from a time outside flight operating hours
 	// As such, all mentioned sectors are inactive
@@ -163,14 +168,40 @@ func parseTimeSegments(transcript string) []TimeSegment {
 	}
 
 	var rO []TimeSegment
-	if onlyOneUpdateTime {
-		// If yes, then the update time will be next monday
-		daysUntilMonday := (int(time.Monday) - int(timeSegments[0][0].Weekday()) + 7) % 7
-		if daysUntilMonday == 0 {
-			daysUntilMonday = 7
-		}
 
-		timeSegments[0][0] = timeSegments[0][0].AddDate(0, 0, daysUntilMonday)
+	// If yes, then the update time will most likely be on a future day
+	if onlyOneUpdateTime {
+		// Check if the transcript contains a concrete date
+		// Happens occasionally when the military is on "vacation"
+		re := regexp.MustCompile(`(\d{1,2})(?:st|nd|rd|th) of (\w+) (\d{4})`)
+		m := re.FindStringSubmatch(transcript)
+		if len(m) == 4 {
+			var parsedDate time.Time
+			var processedDate time.Time
+			slog.Debug("PARSER", "message", "Transcript seems to contain concrete date")
+			parsedDate, err := time.Parse(
+				"2 January 2006",
+				fmt.Sprintf("%s %s %s", m[1], m[2], m[3]),
+			)
+			if err != nil {
+				processedDate = time.Time{}
+			} else {
+				h, m := timeSegments[0][0].Hour(), timeSegments[0][0].Minute()
+				processedDate = parsedDate
+				processedDate = processedDate.Add(time.Hour * time.Duration(h))
+				processedDate = processedDate.Add(time.Minute * time.Duration(m))
+			}
+
+			timeSegments[0][0] = processedDate
+		} else {
+			// ToDo: handle next update time not necessarily being on monday
+			daysUntilMonday := (int(time.Monday) - int(timeSegments[0][0].Weekday()) + 7) % 7
+			if daysUntilMonday == 0 {
+				daysUntilMonday = 7
+			}
+
+			timeSegments[0][0] = timeSegments[0][0].AddDate(0, 0, daysUntilMonday)
+		}
 	} else {
 		var operatingHours []time.Time
 		for i := range timeSegments {
@@ -183,11 +214,18 @@ func parseTimeSegments(transcript string) []TimeSegment {
 		rO = append(rO, TimeSegment{Type: "OperatingHours", Times: operatingHours})
 	}
 
+	if len(timeSegments) == 0 {
+		slog.Error("PARSER", "message", "Was unable to detect time segments", "transcript", transcript)
+		return nil
+	}
+
 	rO = append(rO, TimeSegment{Type: "UpdateTimes", Times: timeSegments[0]})
 	return rO
 }
 
 func ParseTranscript(transcript string, referenceTime time.Time) AirspaceStatus {
+	slog.Info("PARSER", "action", "startParse", "transcript", transcript)
+
 	var timeSegments []TimeSegment
 	var airspaceState AirspaceStatus
 
@@ -215,6 +253,8 @@ func ParseTranscript(transcript string, referenceTime time.Time) AirspaceStatus 
 
 	airspaceState.NextUpdate = nextUpdateTime
 	airspaceState.OperatingHours = operatingHoursTimeSegment.Times
+
+	slog.Info("PARSER", "action", "finishParse", "airspaceState", airspaceState)
 
 	return airspaceState
 }
