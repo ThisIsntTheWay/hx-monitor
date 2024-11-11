@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/thisisnttheway/hx-checker/callback"
@@ -29,21 +30,42 @@ type CallResponse struct {
 }
 
 // Construct Twilio API client
-func constructClient() *twilio.RestClient {
+func createTwilioClient() *twilio.RestClient {
+	var twilioClientParams twilio.ClientParams
 	accountSid := os.Getenv("TWILIO_ACCOUNT_SID")
-	apiKey := os.Getenv("TWILIO_API_KEY")
-	apiSecret := os.Getenv("TWILIO_API_SECRET")
-	// Twilio region will be acquired by twilio-go by looking up TWILIO_REGION
-
-	if accountSid == "" || apiKey == "" || apiSecret == "" {
-		logger.LogErrorFatal("CALLER", "Twilio API credentials are (partly) missing in environment variables")
+	if accountSid == "" {
+		logger.LogErrorFatal("CALLER", "Environment variable TWILIO_ACCOUNT_SID is unset")
 	}
 
-	client := twilio.NewRestClientWithParams(twilio.ClientParams{
-		Username:   apiKey,
-		Password:   apiSecret,
-		AccountSid: accountSid,
-	})
+	authToken, exists := os.LookupEnv("TWILIO_AUTH_TOKEN")
+	slog.Info("CALLER", "usingAuthToken", exists)
+	if exists {
+		twilioClientParams = twilio.ClientParams{
+			Username: accountSid,
+			Password: authToken,
+		}
+	} else {
+		apiKey := os.Getenv("TWILIO_API_KEY")
+		apiSecret := os.Getenv("TWILIO_API_SECRET")
+
+		if apiKey == "" || apiSecret == "" {
+			logger.LogErrorFatal("CALLER", "Twilio API credentials are (partly) missing in environment variables")
+		} else {
+			fmt.Printf(
+				"Using the following credentials:\naccountSid: %s\napiKey: %s\napiSecret: %s\n",
+				accountSid, apiKey, apiSecret,
+			)
+		}
+
+		twilioClientParams = twilio.ClientParams{
+			Username:   apiKey,
+			Password:   apiSecret,
+			AccountSid: accountSid,
+		}
+	}
+
+	// Twilio region will be acquired by twilio-go by looking up TWILIO_REGION
+	client := twilio.NewRestClientWithParams(twilioClientParams)
 
 	return client
 }
@@ -61,29 +83,64 @@ func GetNumbers() []models.Number {
 
 // Call a number and optionally start a live transcription
 func Call(number string, startTranscription bool) (CallResponse, error) {
-	client := constructClient()
+	for {
+		if !callback.IsCallbackurlSet() {
+			slog.Warn("CALLER", "message", "Waiting for CallbackUrlDefined", "CallBackUrlDefined", callback.IsCallbackurlSet())
+			time.Sleep(time.Second * 1)
+		} else {
+			break
+		}
+	}
+
+	var callLength int
+	var defaultCallLength int = 38
+	s, exists := os.LookupEnv("TWILIO_CALL_LENGTH")
+	if exists {
+		c, err := strconv.Atoi(s)
+		if err != nil {
+			slog.Error("CALLER", "message", "Failed converting TWILIO_CALL_LENGTH to int", "error", err)
+			callLength = defaultCallLength
+		} else {
+			callLength = c
+		}
+	} else {
+		callLength = defaultCallLength
+	}
+
+	usingDefaultValue := callLength == defaultCallLength
+	slog.Info("CALLER", "callLength", callLength, "envVarIsSet", exists, "usingDefaultValue", usingDefaultValue)
+
+	client := createTwilioClient()
 
 	twilioCallFrom := os.Getenv("TWILIO_CALL_FROM")
 	if twilioCallFrom == "" {
 		logger.LogErrorFatal("CALLER", "TWILIO_CALL_FROM not set")
 	}
 
-	targetNumber := fmt.Sprintf("+41%s", number)
+	var targetNumber string = number
+	if !strings.HasPrefix(number, "+41") {
+		targetNumber = fmt.Sprintf("+41%s", number)
+	}
 
 	params := &twilioApi.CreateCallParams{}
 	params.SetTo(targetNumber)
 	params.SetFrom(twilioCallFrom)
 	params.SetTimeout(10)
-	params.SetTimeLimit(30)
-	params.SetStatusCallback(callback.CallbackUrl + "/call")
+	params.SetTimeLimit(callLength + 5) // Ensures transcripts can complete
+	params.SetStatusCallback(callback.GetStatusCallbackurl() + "/call")
 	params.SetStatusCallbackEvent([]string{"initiated", "answered", "completed"})
 
 	if startTranscription {
 		transcriptionHints := "active,inactive,Meiringen,CTR,TMA"
+		additionalParams := "partialResults='false' track='inbound_track' speechModel='long'"
+		// handling of partialResults not implemented
+
 		twiMl := fmt.Sprintf(
-			"<Response><Start><Transcription hints='%s' statusCallbackUrl='%s'/></Start><Pause length='30'/></Response>",
+			"<Response><Start><Transcription hints='%s' statusCallbackUrl='%s' %s/></Start><Pause length='%d'/></Response>",
 			transcriptionHints,
-			callback.CallbackUrl+"/transcription",
+			callback.GetStatusCallbackurl()+"/transcription",
+			additionalParams,
+			callLength,
 		)
 		params.SetTwiml(twiMl)
 	}
@@ -93,17 +150,24 @@ func Call(number string, startTranscription bool) (CallResponse, error) {
 		slog.Error("CALLER", "error", fmt.Sprintf("Error calling %s: %v", targetNumber, err.Error()))
 		return CallResponse{}, err
 	} else {
-		timeString := *resp.DateCreated
-		parsedTime, err := time.Parse(twilioTimeFormat, timeString)
-		if err != nil {
-			slog.Error("CALLER", "message", "Failed parsing reported DateCreated", "source", timeString, "error", err.Error())
-			parsedTime = time.Now()
+		var err error
+		var parsedTime time.Time
+		if resp.DateCreated != nil {
+			timeString := *resp.DateCreated
+			parsedTime, err = time.Parse(twilioTimeFormat, timeString)
+			if err != nil {
+				slog.Error("CALLER", "message", "Failed parsing reported DateCreated", "source", timeString, "error", err.Error())
+				parsedTime = time.Now()
+			}
 		}
 
-		price, err := strconv.ParseFloat(*resp.Price, 32)
-		if err != nil {
-			slog.Error("CALLER", "message", "Failed converting reported price", "source", *resp.Price, "error", err.Error())
-			price = 0
+		var price float64
+		if resp.Price != nil {
+			price, err = strconv.ParseFloat(*resp.Price, 32)
+			if err != nil {
+				slog.Error("CALLER", "message", "Failed converting reported price", "source", *resp.Price, "error", err.Error())
+				price = 0
+			}
 		}
 
 		returnObj := CallResponse{
@@ -115,14 +179,24 @@ func Call(number string, startTranscription bool) (CallResponse, error) {
 			PriceUnit:   *resp.PriceUnit,
 		}
 
-		slog.Info("CALLER", "message", fmt.Sprintf("Success calling %s: %T", targetNumber, returnObj))
+		// Check the API for immediate errors
+		time.Sleep(time.Second * 5)
+		callDetails, err := client.Api.FetchCall(*resp.Sid, nil)
+		if err != nil {
+			slog.Error("CALLER", "message", "Failed fetching call", "sid", *resp.Sid)
+			return CallResponse{}, err
+		} else if callDetails.Status != nil && *callDetails.Status == "failed" {
+			return CallResponse{}, fmt.Errorf("Call failed with status '%s'", *callDetails.Status)
+		}
+
+		slog.Info("CALLER", "message", fmt.Sprintf("Success calling %s", targetNumber), "call", returnObj)
 		return returnObj, nil
 	}
 }
 
 // Check a call for a given call SID
 func CheckCall(sid string) (CallResponse, error) {
-	client := constructClient()
+	client := createTwilioClient()
 
 	params := &twilioApi.FetchCallParams{}
 	resp, err := client.Api.FetchCall(sid, params)
