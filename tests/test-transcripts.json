@@ -1,6 +1,22 @@
 [
     {
         "hx_area": "meiringen",
+        "transcript": "My ring and CTR and PMA are not active.\nExpect CTR and TMA my ring and to be active again on Monday, the 25th of November 2024 from 7:30 local time.",
+        "expectedVerdict": "AREA_NOT_ACTIVE",
+        "expectedHxAreasActiveStatus": [
+            {"1": false},
+            {"2": false},
+            {"3": false},
+            {"4": false},
+            {"5": false},
+            {"6": false},
+            {"0": false}
+        ],
+        "testingTimeAndDate": "2024-11-11T14:42:00+01:00",
+        "expectedNextAction": "2024-11-25T07:30:00+01:00"        
+    },
+    {
+        "hx_area": "meiringen",
         "transcript": "meiringen ctr and tma are not active\nexpect ctr and tma meiringen to be active again tomorrow from 7 30 local time\nif you hear this message after 7 30 local time, contact ...",
         "expectedVerdict": "AREA_NOT_ACTIVE",
         "expectedHxAreasActiveStatus": [
