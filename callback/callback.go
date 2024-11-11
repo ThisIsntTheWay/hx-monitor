@@ -2,6 +2,7 @@ package callback
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -11,12 +12,15 @@ import (
 	"time"
 
 	"github.com/thisisnttheway/hx-checker/logger"
+	"github.com/thisisnttheway/hx-checker/transcriptParser"
 	"golang.ngrok.com/ngrok"
 	"golang.ngrok.com/ngrok/config"
 )
 
-var CallbackUrl string = "http://localhost:8080"
+var CallbackUrl string
 var statusCallbacks []StatusCallback
+
+var _transcriptionRequests []TranscriptionRequest
 
 type StatusCallback struct {
 	CallSID        string
@@ -49,6 +53,14 @@ type TranscriptionData struct {
 	Confidence float64 `json:"confidence"`
 }
 
+func GetStatusCallbackurl() string {
+	return CallbackUrl
+}
+
+func IsCallbackurlSet() bool {
+	return CallbackUrl != ""
+}
+
 func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -57,6 +69,7 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 
 	// Check if request has been sent from Tilio
 	twilioSignature := r.Header["X-Twilio-Signature"]
+	//userAgent := r.Header["User-Agent"] // TwilioProxy/1.1
 	if twilioSignature == nil {
 		http.Error(w, "Denied callback", http.StatusForbidden)
 		return
@@ -99,7 +112,6 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 	statusCallbacks = append(statusCallbacks, statusCallback)
 
 	// ToDo: Insert call into db if completed
-	// ToDo: Stop live transcript
 }
 
 func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
@@ -127,21 +139,32 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 	transcription.Final = r.FormValue("Final") == "true"
 	transcription.SequenceId = int(r.FormValue("SequenceId")[0])
 
+	_transcriptionRequests = append(_transcriptionRequests, transcription)
+
 	var logFields []interface{}
 	logFields = append(logFields, "event", transcription.TranscriptionEvent)
 	logFields = append(logFields, "transcriptionSid", transcription.TranscriptionSid)
 	logFields = append(logFields, "callSid", transcription.CallSid)
 
 	// Handle event types
+	var isFinalTranscript bool = false
 	switch transcription.TranscriptionEvent {
 	case "transcription-started":
 		logFields = append(logFields, "startTime", transcription.Timestamp)
 	case "transcription-content":
 		logFields = append(logFields, "transcriptionContent", transcription.TranscriptionData)
 	case "transcription-stopped":
-		finalTranscript := handleTranscriptionStopped(transcription)
 		logFields = append(logFields, "endTime", transcription.Timestamp)
+		isFinalTranscript = true
+	}
+
+	if isFinalTranscript {
+		finalTranscript := handleTranscriptionStopped(transcription)
 		logFields = append(logFields, "finalTranscript", finalTranscript)
+
+		airspaceStatus := transcriptParser.ParseTranscript(finalTranscript, time.Now())
+		o, _ := json.MarshalIndent(airspaceStatus, "", "  ")
+		fmt.Println(string(o))
 	}
 
 	slog.Info("CALLBACK", logFields...)
@@ -150,13 +173,11 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Event received"))
 }
 
-var transcriptionRequests []TranscriptionRequest
-
 // Assemble a completed transcription by its individual parts and return it
 func handleTranscriptionStopped(finalTranscription TranscriptionRequest) string {
 	// Filter array for all items whose "callSid" matches the final transcription's callSid and sort
 	var transcriptionContents []TranscriptionRequest
-	for _, request := range transcriptionRequests {
+	for _, request := range _transcriptionRequests {
 		if request.CallSid == finalTranscription.CallSid {
 			if request.TranscriptionEvent == "transcription-content" {
 				transcriptionContents = append(transcriptionContents, request)
@@ -168,19 +189,26 @@ func handleTranscriptionStopped(finalTranscription TranscriptionRequest) string 
 		return transcriptionContents[i].SequenceId < transcriptionContents[j].SequenceId
 	})
 
+	// Assemble transcript
 	var fullTranscription string
 	for _, content := range transcriptionContents {
-		fullTranscription += content.TranscriptionData + "\n"
+		var tr TranscriptionData
+		e := json.Unmarshal([]byte(content.TranscriptionData), &tr)
+		if e != nil {
+			logger.LogErrorFatal("PARSER", fmt.Sprintf("Failure unmarshaling transcription data: %v", e))
+		}
+
+		fullTranscription += tr.Transcript
 	}
 
 	// Delete all requests with the same callSid and reassemble array
 	var remainingRequests []TranscriptionRequest
-	for _, request := range transcriptionRequests {
+	for _, request := range _transcriptionRequests {
 		if request.CallSid != finalTranscription.CallSid {
 			remainingRequests = append(remainingRequests, request)
 		}
 	}
-	transcriptionRequests = remainingRequests
+	_transcriptionRequests = remainingRequests
 
 	return fullTranscription
 }
@@ -193,6 +221,7 @@ func Serve() {
 
 	_, exists := os.LookupEnv("NGROK_AUTHTOKEN")
 	if exists {
+		slog.Info("CALLBACK", "message", "Will use ngrok")
 		listener, err := ngrok.Listen(
 			context.Background(),
 			config.HTTPEndpoint(),
@@ -205,14 +234,18 @@ func Serve() {
 		// Set ngrok tunnel URL as CallbackUrl
 		CallbackUrl = listener.URL()
 		slog.Info("CALLBACK", "callbackUrl", CallbackUrl)
-
 		if err := http.Serve(listener, nil); err != nil {
 			logger.LogErrorFatal("CALLBACK", err.Error())
 		}
 	} else {
-		CallbackUrl = os.Getenv("TWILIO_API_CALLBACK_URL")
-		slog.Info("CALLBACK", "callbackUrl", CallbackUrl)
+		CallbackUrl, exists = os.LookupEnv("TWILIO_API_CALLBACK_URL")
+		if !exists {
+			logger.LogErrorFatal("CALLBACK", "Must set TWILIO_API_CALLBACK_URL or use ngrok")
+		} else {
+			slog.Info("CALLBACK", "message", "Have set callback URL to env var", "value", CallbackUrl)
+		}
 
+		slog.Info("CALLBACK", "callbackUrl", CallbackUrl)
 		if err := http.ListenAndServe(":8080", nil); err != nil {
 			logger.LogErrorFatal("CALLBACK", err.Error())
 		}
