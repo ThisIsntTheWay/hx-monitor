@@ -1,0 +1,220 @@
+package transcriptParser
+
+import (
+	"fmt"
+	"regexp"
+	"strings"
+	"time"
+)
+
+type AirspaceStatus struct {
+	Areas          []Area      `json:"areas"`
+	NextUpdate     time.Time   `json:"nextUpdate"`
+	OperatingHours []time.Time `json:"operatingHours"`
+}
+
+type Area struct {
+	Index  int  `json:"index"`
+	Status bool `json:"status"`
+}
+
+type TimeSegment struct {
+	Type  string
+	Times []time.Time
+}
+
+// ---- Testing -----
+type HxAreaTestJson struct {
+	HxArea                      string            `json:"hx_area"`
+	Transcript                  string            `json:"transcript"`
+	AdditionalNote              string            `json:"additionalNote"`
+	ExpectedVerdict             string            `json:"expectedVerdict"`
+	ExpectedHxAreasActiveStatus []map[string]bool `json:"expectedHxAreasActiveStatus"`
+	TestingTimeAndDate          time.Time         `json:"testingTimeAndDate"`
+	ExpectedNextAction          time.Time         `json:"expectedNextAction"`
+}
+
+// ------------------
+
+// parseTranscript parses the provided transcript and extracts the airspace status
+func parseAirspaceStates(transcript string) AirspaceStatus {
+	// Default areas
+	areas := []Area{
+		{0, false}, // CTR
+		{1, false}, // TMA x
+		{2, false},
+		{3, false},
+		{4, false},
+		{5, false},
+		{6, false},
+	}
+
+	transcript = strings.ToLower(transcript)
+
+	// If true, then transcript is from a time outside flight operating hours
+	// As such, all mentioned sectors are inactive
+	canBeActivated := strings.Contains(transcript, "can be")
+
+	// If true, then likely no areas will be active (weekend transcript)
+	hasMultipleCtrSubstrings := strings.Count(transcript, "ctr") > 1
+	var ctrSubstringIndex int
+	if hasMultipleCtrSubstrings {
+		ctrSubstringIndex = 0
+	} else {
+		ctrSubstringIndex = 1
+	}
+
+	// First split by CTR, then by keyword "active"
+	splitCtr := strings.Split(transcript, "ctr")
+	splitActive := strings.Split(splitCtr[ctrSubstringIndex], "active")
+
+	// If contained in the first split segment, then no areas are active
+	hasAreNotActive := strings.Contains(transcript, "are not active")
+
+	everyTmaTargeted := strings.Contains(splitActive[0], "all tma")
+
+	if !canBeActivated && !everyTmaTargeted && !hasAreNotActive {
+		// CTR and specific TMAs are active
+		activeTmas := regexp.MustCompile(`\d`).FindAllString(splitActive[0], -1)
+
+		for i := range activeTmas {
+			areas[i+1].Status = true
+		}
+
+		// CTR
+		areas[0].Status = true
+	} else if !hasAreNotActive && everyTmaTargeted {
+		// Eveything is active
+		for i := range areas {
+			areas[i].Status = true
+		}
+	} else if hasAreNotActive {
+		// Everything is inactive, therefore preserve defaults
+	}
+
+	// Return the parsed data
+	return AirspaceStatus{
+		Areas:      areas,
+		NextUpdate: time.Unix(0, 0),
+	}
+}
+
+func parseTimeToCurrentDate(timeString string) (time.Time, error) {
+	parsedTime, err := time.Parse("15:04", timeString)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("error parsing time: %w", err)
+	}
+
+	now := time.Now()
+
+	// Combine the parsed time with the current date in the local timezone
+	finalTime := time.Date(
+		now.Year(), now.Month(), now.Day(),
+		parsedTime.Hour(), parsedTime.Minute(), 0, 0,
+		now.Location(),
+	)
+
+	return finalTime, nil
+}
+
+// Extract time segments; Next updates and flight operating hours
+func parseTimeSegments(transcript string) []TimeSegment {
+	patternTimeSegments := `\d{1,2}[: ]\d{2}`
+
+	// Split all time segments by the "local time" substring.
+	// Segment 1: Message update times,
+	// Segment 2: Flight operating hours morning,
+	// Segment 3: Flight operating hours evening,
+	// Format: [[t1, t2], [t1, t2], [t1, t2]]
+	var timeSegments [][]time.Time
+
+	// Check if this transcript is for the weekend (only one update time)
+	onlyOneUpdateTime := strings.Contains(transcript, "be active again next")
+
+	splitLocalTime := strings.Split(transcript, "local time")
+	for i, split := range splitLocalTime {
+		trimmed := strings.TrimSpace(split)
+		if onlyOneUpdateTime && i == 1 {
+			continue
+		}
+
+		if regexp.MustCompile(`\d`).MatchString(trimmed) {
+			re := regexp.MustCompile(patternTimeSegments)
+			matches := re.FindAllStringSubmatch(trimmed, -1)
+
+			// Parse each time segment within local time segment, but only if we have any matches at alls
+			if len(matches) < 1 {
+				continue
+			}
+
+			var segments []time.Time
+			for _, match := range matches {
+				replacedString := strings.Replace(match[0], " ", ":", 1)
+				convertedTime, err := parseTimeToCurrentDate(replacedString)
+				if err != nil {
+					panic(err)
+				}
+
+				segments = append(segments, convertedTime)
+			}
+
+			timeSegments = append(timeSegments, segments)
+		}
+	}
+
+	var rO []TimeSegment
+	if onlyOneUpdateTime {
+		// If yes, then the update time will be next monday
+		daysUntilMonday := (int(time.Monday) - int(timeSegments[0][0].Weekday()) + 7) % 7
+		if daysUntilMonday == 0 {
+			daysUntilMonday = 7
+		}
+
+		timeSegments[0][0] = timeSegments[0][0].AddDate(0, 0, daysUntilMonday)
+	} else {
+		var operatingHours []time.Time
+		for i := range timeSegments {
+			// Skip first timeSegment, the update times
+			if i > 0 {
+				operatingHours = append(operatingHours, timeSegments[i]...)
+			}
+		}
+
+		rO = append(rO, TimeSegment{Type: "OperatingHours", Times: operatingHours})
+	}
+
+	rO = append(rO, TimeSegment{Type: "UpdateTimes", Times: timeSegments[0]})
+	return rO
+}
+
+func ParseTranscript(transcript string, referenceTime time.Time) AirspaceStatus {
+	var timeSegments []TimeSegment
+	var airspaceState AirspaceStatus
+
+	timeSegments = parseTimeSegments(transcript)
+	airspaceState = parseAirspaceStates(transcript)
+
+	// Assign time segments
+	var updateTimeTimeSegment TimeSegment
+	var operatingHoursTimeSegment TimeSegment
+	for _, segment := range timeSegments {
+		if segment.Type == "UpdateTimes" {
+			updateTimeTimeSegment = segment
+		} else if segment.Type == "OperatingHours" {
+			operatingHoursTimeSegment = segment
+		}
+	}
+
+	var nextUpdateTime time.Time
+	for _, segment := range updateTimeTimeSegment.Times {
+		if referenceTime.Before(segment) {
+			nextUpdateTime = segment
+			break
+		}
+	}
+
+	airspaceState.NextUpdate = nextUpdateTime
+	airspaceState.OperatingHours = operatingHoursTimeSegment.Times
+
+	return airspaceState
+}
