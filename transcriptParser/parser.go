@@ -243,7 +243,7 @@ func ParseTranscript(transcript string, referenceTime time.Time) AirspaceStatus 
 		}
 	}
 
-	var nextUpdateTime time.Time
+	nextUpdateTime := time.Time{}
 	for _, segment := range updateTimeTimeSegment.Times {
 		if referenceTime.Before(segment) {
 			nextUpdateTime = segment
