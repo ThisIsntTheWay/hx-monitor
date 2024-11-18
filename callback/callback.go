@@ -81,10 +81,9 @@ func IsCallbackurlSet() bool {
 	return CallbackUrl != ""
 }
 
-// ToDo: Fix - Doesn't remove all entries
 func sanitizePartialTranscriptions(s []TranscriptionRequest) []TranscriptionRequest {
 	// Partial transcripts all have the same sequence ID, but different timestamps
-	// As such, we'll have to resort to sorting by timestamps
+	// As such, we'll have to resort to sorting by timestamps instead
 	sort.Slice(s, func(i, j int) bool {
 		return s[i].Timestamp.Before(s[j].Timestamp)
 	})
@@ -204,22 +203,21 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 	transcription.Final = r.FormValue("Final") == "true"
 	transcription.SequenceId = int(r.FormValue("SequenceId")[0])
 
-	/*
-		If we are expecting partial results, then:
-		- Assume all transcription JSONs without a "confidence" field are interim results
-		  - Ones with such a field are complete transcription segments
-		- Every inbound interim result will 'overwrite' the last interim result
-
-		Very often, Twilio will return one completely transcribed sentence, but then never provide another (complete transcription).
-		Suddendly, a "transcription-stopped" event gets sent.
-		The following code handles partial resutlts
-	*/
 	if transcription.TranscriptionEvent == "transcription-content" {
 		var transcriptData TranscriptionData
 		err := json.Unmarshal([]byte(r.FormValue("TranscriptionData")), &transcriptData)
 		if err != nil {
 			slog.Error("CALLBACK", "message", "Failed json.Unmarshal on interim transcription request", "error", err)
 		} else {
+			/*
+				If we are expecting partial results, then...
+				- Assume all transcription JSONs without a "confidence" field are interim results
+				  - Ones with such a field are complete transcription segments
+				- Only keep the last interim transcript as that will be the most complete sentence
+		
+				Very often, Twilio will return one completely transcribed sentence, but then never provide another complete transcription.
+				Instead of a complete sentence, a "transcription-stop" event gets sent.
+			*/
 			if UsesPartialTranscriptionResults() {
 				isInterim := transcriptData.Confidence == 0
 				transcription.IsInterim = isInterim
