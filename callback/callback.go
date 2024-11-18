@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -18,9 +19,10 @@ import (
 )
 
 var CallbackUrl string
-var statusCallbacks []StatusCallback
+var UsePartialTranscriptionResults bool
 
 var _transcriptionRequests []TranscriptionRequest
+var statusCallbacks []StatusCallback
 
 type StatusCallback struct {
 	CallSID        string
@@ -35,22 +37,40 @@ type StatusCallback struct {
 }
 
 type TranscriptionRequest struct {
-	LanguageCode       string `json:"LanguageCode"`
-	TranscriptionSid   string `json:"TranscriptionSid"`
-	PartialResults     bool   `json:"PartialResults"`
-	TranscriptionEvent string `json:"TranscriptionEvent"`
-	CallSid            string `json:"CallSid"`
-	TranscriptionData  string `json:"TranscriptionData"`
-	Timestamp          string `json:"Timestamp"`
-	AccountSid         string `json:"AccountSid"`
-	Track              string `json:"Track"`
-	Final              bool   `json:"Final"`
-	SequenceId         int    `json:"SequenceId"`
+	LanguageCode       string            `json:"LanguageCode"`
+	TranscriptionSid   string            `json:"TranscriptionSid"`
+	PartialResults     bool              `json:"PartialResults"`
+	TranscriptionEvent string            `json:"TranscriptionEvent"`
+	CallSid            string            `json:"CallSid"`
+	TranscriptionData  TranscriptionData `json:"TranscriptionData"`
+	Timestamp          time.Time         `json:"Timestamp"`
+	AccountSid         string            `json:"AccountSid"`
+	Track              string            `json:"Track"`
+	Final              bool              `json:"Final"`
+	SequenceId         int               `json:"SequenceId"`
+	IsInterim          bool              `json:"isInterim"` // Non-standard field
 }
 
 type TranscriptionData struct {
 	Transcript string  `json:"transcript"`
 	Confidence float64 `json:"confidence"`
+}
+
+func init() {
+	v, exists := os.LookupEnv("TWILIO_PARTIAL_TRANSCRIPTIONS")
+	if exists {
+		var err error
+		UsePartialTranscriptionResults, err = strconv.ParseBool(v)
+		if err != nil {
+			slog.Error("CALLBACK", "message", "Was unable to parse env var 'TWILIO_PARTIAL_TRANSCRIPTIONS'", "error", err)
+		}
+	}
+
+	slog.Info("CALLBACK", "event", "init", "usePartialTranscriptionResults", UsePartialTranscriptionResults)
+}
+
+func UsesPartialTranscriptionResults() bool {
+	return UsePartialTranscriptionResults
 }
 
 func GetStatusCallbackurl() string {
@@ -59,6 +79,43 @@ func GetStatusCallbackurl() string {
 
 func IsCallbackurlSet() bool {
 	return CallbackUrl != ""
+}
+
+// ToDo: Fix - Doesn't remove all entries
+func sanitizePartialTranscriptions(s []TranscriptionRequest) []TranscriptionRequest {
+	// Partial transcripts all have the same sequence ID, but different timestamps
+	// As such, we'll have to resort to sorting by timestamps
+	sort.Slice(s, func(i, j int) bool {
+		return s[i].Timestamp.Before(s[j].Timestamp)
+	})
+
+	// First, remove all interim entries that do not meet the minimal length
+	const minLength int = 16
+	var intermediateResults []TranscriptionRequest
+	for _, entry := range s {
+		entry.IsInterim = entry.TranscriptionData.Confidence == 0
+		if len(entry.TranscriptionData.Transcript) >= minLength || !entry.IsInterim {
+			intermediateResults = append(intermediateResults, entry)
+		}
+	}
+
+	// Secondly, remove all interim entries but keep track of the last entry
+	var result []TranscriptionRequest
+	var lastInterim *TranscriptionRequest
+	for _, entry := range intermediateResults {
+		if entry.TranscriptionData.Confidence == 0 {
+			lastInterim = &entry
+		} else {
+			result = append(result, entry)
+		}
+	}
+
+	// Append last inerim entry to final result
+	if lastInterim != nil {
+		result = append(result, *lastInterim)
+	}
+
+	return result
 }
 
 func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
@@ -98,6 +155,7 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	badStates := []string{"busy", "no-answer", "canceled", "failed"}
 	if statusCallback.CallStatus == "completed" {
 		convertedDuration, err := strconv.ParseInt(r.FormValue("Duration"), 10, 8)
 		if err != nil {
@@ -105,13 +163,15 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 			convertedDuration = 0
 		}
 		statusCallback.Duration = int8(convertedDuration)
+	} else if slices.Contains(badStates, statusCallback.CallStatus) {
+		slog.Error("CALLBACK", "callSid", statusCallback.CallSID, "status", statusCallback.CallStatus, "action", "requeue")
+		// ToDo: Requeue accordingly
 	}
 
 	slog.Info("CALLBACK", "event", "receivedEvent", "statusCallback", statusCallback)
 
 	statusCallbacks = append(statusCallbacks, statusCallback)
-
-	// ToDo: Insert call into db if completed
+	// ToDo: Insert call into db once completed
 }
 
 func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
@@ -133,11 +193,41 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 	transcription.TranscriptionSid = r.FormValue("TranscriptionSid")
 	transcription.TranscriptionEvent = r.FormValue("TranscriptionEvent")
 	transcription.CallSid = r.FormValue("CallSid")
-	transcription.TranscriptionData = r.FormValue("TranscriptionData")
-	transcription.Timestamp = r.FormValue("Timestamp")
+
+	parsedTime, e := time.Parse(time.RFC3339, r.FormValue("Timestamp"))
+	if e != nil {
+		parsedTime = time.Now()
+	}
+	transcription.Timestamp = parsedTime
+
 	transcription.Track = r.FormValue("Track")
 	transcription.Final = r.FormValue("Final") == "true"
 	transcription.SequenceId = int(r.FormValue("SequenceId")[0])
+
+	/*
+		If we are expecting partial results, then:
+		- Assume all transcription JSONs without a "confidence" field are interim results
+		  - Ones with such a field are complete transcription segments
+		- Every inbound interim result will 'overwrite' the last interim result
+
+		Very often, Twilio will return one completely transcribed sentence, but then never provide another (complete transcription).
+		Suddendly, a "transcription-stopped" event gets sent.
+		The following code handles partial resutlts
+	*/
+	if transcription.TranscriptionEvent == "transcription-content" {
+		var transcriptData TranscriptionData
+		err := json.Unmarshal([]byte(r.FormValue("TranscriptionData")), &transcriptData)
+		if err != nil {
+			slog.Error("CALLBACK", "message", "Failed json.Unmarshal on interim transcription request", "error", err)
+		} else {
+			if UsesPartialTranscriptionResults() {
+				isInterim := transcriptData.Confidence == 0
+				transcription.IsInterim = isInterim
+			}
+		}
+
+		transcription.TranscriptionData = transcriptData
+	}
 
 	_transcriptionRequests = append(_transcriptionRequests, transcription)
 
@@ -145,6 +235,7 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 	logFields = append(logFields, "event", transcription.TranscriptionEvent)
 	logFields = append(logFields, "transcriptionSid", transcription.TranscriptionSid)
 	logFields = append(logFields, "callSid", transcription.CallSid)
+	logFields = append(logFields, "sequenceId", transcription.SequenceId)
 
 	// Handle event types
 	var isFinalTranscript bool = false
@@ -159,6 +250,10 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isFinalTranscript {
+		if UsesPartialTranscriptionResults() {
+			_transcriptionRequests = sanitizePartialTranscriptions(_transcriptionRequests)
+		}
+
 		finalTranscript := handleTranscriptionStopped(transcription)
 		logFields = append(logFields, "finalTranscript", finalTranscript)
 
@@ -185,20 +280,14 @@ func handleTranscriptionStopped(finalTranscription TranscriptionRequest) string 
 		}
 	}
 
-	sort.SliceStable(transcriptionContents, func(i, j int) bool {
-		return transcriptionContents[i].SequenceId < transcriptionContents[j].SequenceId
+	// Sort by timestamps in ascending order
+	sort.Slice(transcriptionContents, func(i, j int) bool {
+		return transcriptionContents[i].Timestamp.Before(transcriptionContents[j].Timestamp)
 	})
 
-	// Assemble transcript
 	var fullTranscription string
-	for _, content := range transcriptionContents {
-		var tr TranscriptionData
-		e := json.Unmarshal([]byte(content.TranscriptionData), &tr)
-		if e != nil {
-			logger.LogErrorFatal("PARSER", fmt.Sprintf("Failure unmarshaling transcription data: %v", e))
-		}
-
-		fullTranscription += tr.Transcript
+	for _, t := range transcriptionContents {
+		fullTranscription += t.TranscriptionData.Transcript
 	}
 
 	// Delete all requests with the same callSid and reassemble array
@@ -242,7 +331,7 @@ func Serve() {
 		if !exists {
 			logger.LogErrorFatal("CALLBACK", "Must set TWILIO_API_CALLBACK_URL or use ngrok")
 		} else {
-			slog.Info("CALLBACK", "message", "Have set callback URL to env var", "value", CallbackUrl)
+			slog.Info("CALLBACK", "callbackUrlSource", "envVar", "value", CallbackUrl)
 		}
 
 		slog.Info("CALLBACK", "callbackUrl", CallbackUrl)

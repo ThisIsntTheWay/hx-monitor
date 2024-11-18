@@ -14,10 +14,15 @@ export TWILIO_API_KEY=
 export TWILIO_API_SECRET=
 
 # Optional, shown are defaults
+TWILIO_PARTIAL_TRANSCRIPTIONS=0 # bool, if set to true will instruct Twilio to send partial transcriptions
+                                # Useful for scenarios where Twilio will only send a single transcribed sentence
+                                # Will quickly result HTTP 429 errors when using ngrok!
+
 TWILIO_CALL_LENGTH=30 # In seconds
                       # English transcripts may take up to 38 seconds, e.g. Meiringen
 
-TWILIO_CALLBACK_URL="" # If unset, will use ngrok to generate a callback URL
+TWILIO_CALLBACK_URL="" # Publicly accessible URL of this programs callback server.
+                       # If unset, will use ngrok to generate a callback URL
 NGROK_AUTHTOKEN=""     # If TWILIO_CALLBACK_URL is unset, this must be set - see above
 ```
 

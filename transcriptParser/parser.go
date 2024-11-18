@@ -52,9 +52,10 @@ func parseAirspaceStates(transcript string) AirspaceStatus {
 
 	transcript = strings.ToLower(transcript)
 
-	// Correct twilio transcription mistakes
+	// Correct common twilio transcription mistakes
 	transcript = strings.Replace(transcript, "my ring", "meiringen", -1)
 	transcript = strings.Replace(transcript, "pma", "tma", -1)
+	transcript = strings.Replace(transcript, "be act again", "be active again", -1)
 
 	// If true, then transcript is from a time outside flight operating hours
 	// As such, all mentioned sectors are inactive
@@ -134,7 +135,8 @@ func parseTimeSegments(transcript string) []TimeSegment {
 	var timeSegments [][]time.Time
 
 	// Check if this transcript is for the weekend (only one update time)
-	onlyOneUpdateTime := strings.Contains(transcript, "be active again next")
+	// Sometimes gets misinterpreted as "be act again"
+	onlyOneUpdateTime := strings.Contains(transcript, "be active again")
 
 	splitLocalTime := strings.Split(transcript, "local time")
 	for i, split := range splitLocalTime {
@@ -224,7 +226,7 @@ func parseTimeSegments(transcript string) []TimeSegment {
 }
 
 func ParseTranscript(transcript string, referenceTime time.Time) AirspaceStatus {
-	slog.Info("PARSER", "action", "startParse", "transcript", transcript)
+	slog.Info("PARSER", "event", "startParse", "transcript", transcript, "referenceTime", referenceTime)
 
 	var timeSegments []TimeSegment
 	var airspaceState AirspaceStatus
@@ -235,6 +237,7 @@ func ParseTranscript(transcript string, referenceTime time.Time) AirspaceStatus 
 	// Assign time segments
 	var updateTimeTimeSegment TimeSegment
 	var operatingHoursTimeSegment TimeSegment
+	slog.Info("PARSER", "action", "assembleTimeSegments", "timeSegments", timeSegments)
 	for _, segment := range timeSegments {
 		if segment.Type == "UpdateTimes" {
 			updateTimeTimeSegment = segment
@@ -245,7 +248,9 @@ func ParseTranscript(transcript string, referenceTime time.Time) AirspaceStatus 
 
 	nextUpdateTime := time.Time{}
 	for _, segment := range updateTimeTimeSegment.Times {
+		slog.Info("PARSER", "action", "setUpdateTime", "candidateSegment", segment)
 		if referenceTime.Before(segment) {
+			slog.Info("PARSER", "action", "setUpdateTimeFinal", "candidateSegment", segment)
 			nextUpdateTime = segment
 			break
 		}
@@ -254,7 +259,7 @@ func ParseTranscript(transcript string, referenceTime time.Time) AirspaceStatus 
 	airspaceState.NextUpdate = nextUpdateTime
 	airspaceState.OperatingHours = operatingHoursTimeSegment.Times
 
-	slog.Info("PARSER", "action", "finishParse", "airspaceState", airspaceState)
+	slog.Info("PARSER", "event", "finishParse", "airspaceState", airspaceState)
 
 	return airspaceState
 }

@@ -107,8 +107,7 @@ func Call(number string, startTranscription bool) (CallResponse, error) {
 		callLength = defaultCallLength
 	}
 
-	usingDefaultValue := callLength == defaultCallLength
-	slog.Info("CALLER", "callLength", callLength, "envVarIsSet", exists, "usingDefaultValue", usingDefaultValue)
+	slog.Info("CALLER", "callLength", callLength, "envVarIsSet", exists, "usingDefaultValue", callLength == defaultCallLength)
 
 	client := createTwilioClient()
 
@@ -125,15 +124,18 @@ func Call(number string, startTranscription bool) (CallResponse, error) {
 	params := &twilioApi.CreateCallParams{}
 	params.SetTo(targetNumber)
 	params.SetFrom(twilioCallFrom)
-	params.SetTimeout(10)
 	params.SetTimeLimit(callLength + 5) // Ensures transcripts can complete
 	params.SetStatusCallback(callback.GetStatusCallbackurl() + "/call")
 	params.SetStatusCallbackEvent([]string{"initiated", "answered", "completed"})
 
 	if startTranscription {
-		transcriptionHints := "active,inactive,Meiringen,CTR,TMA"
-		additionalParams := "partialResults='false' track='inbound_track' speechModel='long'"
-		// handling of partialResults not implemented
+		// Apparently you could use twilio-go/twiml/twiml.go instead of assembling a string but idk how
+
+		transcriptionHints := "" //"$DAY, CTR, TMA"
+		// Adding hints seems to break googles speech-to-text engine after the first sentence
+
+		additionalParams := fmt.Sprintf("partialResults='%v' track='inbound_track'", callback.UsesPartialTranscriptionResults())
+		fmt.Println(additionalParams)
 
 		twiMl := fmt.Sprintf(
 			"<Response><Start><Transcription hints='%s' statusCallbackUrl='%s' %s/></Start><Pause length='%d'/></Response>",
