@@ -1,5 +1,6 @@
 # Testing stuff
 mongodb-test
+run*.log
 
 # Builds
 hx-checker
