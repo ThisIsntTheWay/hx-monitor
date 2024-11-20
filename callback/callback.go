@@ -85,42 +85,6 @@ func IsCallbackurlSet() bool {
 	return CallbackUrl != ""
 }
 
-func sanitizePartialTranscriptions(s []TranscriptionRequest) []TranscriptionRequest {
-	// Partial transcripts all have the same sequence ID, but different timestamps
-	// As such, we'll have to resort to sorting by timestamps instead
-	sort.Slice(s, func(i, j int) bool {
-		return s[i].Timestamp.Before(s[j].Timestamp)
-	})
-
-	// First, remove all interim entries that do not meet the minimal length
-	const minLength int = 16
-	var intermediateResults []TranscriptionRequest
-	for _, entry := range s {
-		entry.IsInterim = entry.TranscriptionData.Confidence == 0
-		if len(entry.TranscriptionData.Transcript) >= minLength || !entry.IsInterim {
-			intermediateResults = append(intermediateResults, entry)
-		}
-	}
-
-	// Secondly, remove all interim entries but keep track of the last entry
-	var result []TranscriptionRequest
-	var lastInterim *TranscriptionRequest
-	for _, entry := range intermediateResults {
-		if entry.TranscriptionData.Confidence == 0 {
-			lastInterim = &entry
-		} else {
-			result = append(result, entry)
-		}
-	}
-
-	// Append last inerim entry to final result
-	if lastInterim != nil {
-		result = append(result, *lastInterim)
-	}
-
-	return result
-}
-
 func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
