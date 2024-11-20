@@ -266,6 +266,18 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(string(o))
 
 		// Update DB
+		transcriptDbObj := models.Transcript{
+			ID:       primitive.NewObjectID(),
+			Date:     transcription.Timestamp,
+			NumberID: number.ID,
+			HXAreaID: area.ID,
+			CallSID:  transcription.CallSid,
+		}
+		err = db.InsertDocument("transcripts", transcriptDbObj)
+		if err != nil {
+			slog.Error("CALLBACK", "action", "insertTranscriptIntoDatabase", "error", err)
+		}
+
 		area.NextAction = airspaceStatus.NextUpdate
 		area.SubAreas = createHxSubAreas(airspaceStatus, area.Name)
 
@@ -275,7 +287,7 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 			bson.D{{"$set", area}},
 		)
 		if err != nil {
-			slog.Error("CALLBACK", "error", err)
+			slog.Error("CALLBACK", "action", "updateHxAreasInDatabase", "error", err)
 		}
 	}
 

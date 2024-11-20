@@ -43,7 +43,7 @@ type Transcript struct {
 	Transcript string             `bson:"transcript"`
 	Date       time.Time          `bson:"date"`
 	Cost       string             `bson:"cost"`
-	NumberID   int                `bson:"number_id"`
-	HXAreaID   int                `bson:"hx_area_id"`
-	CallID     int                `bson:"call_id"`
+	NumberID   primitive.ObjectID `bson:"number_id"`
+	HXAreaID   primitive.ObjectID `bson:"hx_area_id"`
+	CallSID    string             `bson:"call_sid"`
 }
