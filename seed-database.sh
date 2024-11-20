@@ -7,6 +7,7 @@ mongosh "mongodb://$MONGO_HOST:$MONGO_PORT" -u $MONGO_USER -p $MONGO_PASSWORD --
 conn = db.getMongo()
 db = conn.getDB("hx");
 
+db.calls.drop()
 db.numbers.drop()
 db.hx_areas.drop()
 db.hx_sub_areas.drop()
@@ -22,7 +23,7 @@ db.hx_areas.insertMany([
     {
         name: "meiringen",
         number_name: "meiringen",
-        areas: [
+        sub_areas: [
             {
                 full_name: "Meiringen CTR",
                 name: "meiringen-ctr",
