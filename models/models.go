@@ -19,15 +19,14 @@ type HXArea struct {
 	Name       string             `bson:"name"`
 	NextAction time.Time          `bson:"next_action"`
 	LastAction time.Time          `bson:"last_action"`
+	SubAreas   []HXSubArea        `bson:"sub_areas"`
 	NumberName string             `bson:"number_name"`
 }
 
-type HXSubAreas struct {
-	ID           primitive.ObjectID `bson:"_id"`
-	Fullname     string             `bson:"full_name"`
-	Name         string             `bson:"name"`
-	Status       string             `bson:"status"`
-	AreaRefernce string             `bson:"area_reference"`
+type HXSubArea struct {
+	Fullname string `bson:"full_name"`
+	Name     string `bson:"name"`
+	Status   bool   `bson:"status"`
 }
 
 type Call struct {
@@ -36,7 +35,7 @@ type Call struct {
 	Time     time.Time          `bson:"time"`
 	Status   string             `bson:"status"`
 	Cost     string             `bson:"cost"`
-	NumberID int                `bson:"number_id"`
+	NumberID primitive.ObjectID `bson:"number_id"`
 }
 
 type Transcript struct {

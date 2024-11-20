@@ -21,48 +21,46 @@ db.numbers.insertMany([
 db.hx_areas.insertMany([
     {
         name: "meiringen",
-        number_name: "meiringen"
+        number_name: "meiringen",
+        areas: [
+            {
+                full_name: "Meiringen CTR",
+                name: "meiringen-ctr",
+                status: false
+            },
+            {
+                full_name: "Meiringen TMA 1",
+                name: "meiringen-tma-1",
+                status: false
+            },
+            {
+                full_name: "Meiringen TMA 2",
+                name: "meiringen-tma-2",
+                status: false
+            },
+            {
+                full_name: "Meiringen TMA 3",
+                name: "meiringen-tma-3",
+                status: false
+            },
+            {
+                full_name: "Meiringen TMA 4",
+                name: "meiringen-tma-4",
+                status: false
+            },
+            {
+                full_name: "Meiringen TMA 5",
+                name: "meiringen-tma-5",
+                status: false
+            },
+            {
+                full_name: "Meiringen TMA 6",
+                name: "meiringen-tma-6",
+                status: false
+            }
+        ]
     },
 ])
-
-db.hx_sub_areas.insertMany([
-    {
-        full_name: "Meiringen CTR",
-        name: "meiringen-ctr",
-        area_reference: "meiringen"
-    },
-    {
-        full_name: "Meiringen TMA 1",
-        name: "meiringen-tma-1",
-        area_reference: "meiringen"
-    },
-    {
-        full_name: "Meiringen TMA 2",
-        name: "meiringen-tma-2",
-        area_reference: "meiringen"
-    },
-    {
-        full_name: "Meiringen TMA 3",
-        name: "meiringen-tma-3",
-        area_reference: "meiringen"
-    },
-    {
-        full_name: "Meiringen TMA 4",
-        name: "meiringen-tma-4",
-        area_reference: "meiringen"
-    },
-    {
-        full_name: "Meiringen TMA 5",
-        name: "meiringen-tma-5",
-        area_reference: "meiringen"
-    },
-    {
-        full_name: "Meiringen TMA 6",
-        name: "meiringen-tma-6",
-        area_reference: "meiringen"
-    }
-])
-
 EOF
 )"
 
