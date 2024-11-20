@@ -17,7 +17,7 @@ import (
 // Searches the DB for a number
 func searchDbForNumber(numberTo string) ([]models.Number, error) {
 	var result []models.Number
-	result, err := db.GetDocument[models.Number]("numbers", bson.D{{"number", numberTo}})
+	result, err := db.GetDocument[models.Number]("numbers", bson.M{"number": numberTo})
 	if err != nil {
 		return result, err
 	}
@@ -31,14 +31,14 @@ func mapCallSidToNumber(callSid string) (models.Number, error) {
 	var calls []models.Call
 	var err error
 
-	calls, err = db.GetDocument[models.Call]("calls", bson.D{{"sid", callSid}})
+	calls, err = db.GetDocument[models.Call]("calls", bson.M{"sid": callSid})
 	if err != nil {
 		return models.Number{}, err
 	}
 
 	numbers, err = db.GetDocument[models.Number](
 		"numbers",
-		bson.D{{"_id", calls[0].NumberID}},
+		bson.M{"_id": calls[0].NumberID},
 	)
 	if err != nil {
 		return models.Number{}, err
@@ -52,7 +52,7 @@ func mapNumberNameToHxArea(numberName string) (models.HXArea, error) {
 	var result []models.HXArea
 	result, err := db.GetDocument[models.HXArea](
 		"hx_areas",
-		bson.D{{"number_name", numberName}},
+		bson.M{"number_name": numberName},
 	)
 	if err != nil {
 		return models.HXArea{}, err
