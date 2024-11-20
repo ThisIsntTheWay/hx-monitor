@@ -13,6 +13,7 @@ import (
 )
 
 var client *mongo.Client
+var contextTimeout time.Duration = 6 * time.Second
 
 // Get environment variable with a default value
 func getEnv(key string, defaultValue string) string {
@@ -48,39 +49,82 @@ func Connect() *mongo.Client {
 		logger.LogErrorFatal("DB", "MongoDB connection details are missing in environment variables")
 	}
 
-	slog.Info("DB", "message", "MongoDB client has been set up")
+	slog.Info("DB", "action", "connect", "success", true)
 	return client
 }
 
-// Insert document into database
+// Insert single document into database
 func InsertDocument(colName string, document interface{}) error {
 	mongoDatabase := getEnv("MONGODB_DATABASE", "hx")
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel()
 
 	collection := client.Database(mongoDatabase).Collection(colName)
-	_, err := collection.InsertOne(context.Background(), document)
+	_, err := collection.InsertOne(ctx, document)
 	if err != nil {
 		slog.Error("DB", "error", fmt.Sprintf("Failed to insert document: %v", err))
 		return err
 	}
 
-	slog.Info("DB", "message", "Document inserted")
+	slog.Info("DB", "action", "insertDocument", "colName", colName, "document", document)
+	return nil
+}
+
+// Insert many documents into database
+func InsertDocuments(colName string, documents []interface{}) error {
+	mongoDatabase := getEnv("MONGODB_DATABASE", "hx")
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel()
+
+	collection := client.Database(mongoDatabase).Collection(colName)
+	_, err := collection.InsertMany(ctx, documents)
+	if err != nil {
+		slog.Error("DB", "error", fmt.Sprintf("Failed to insert documents: %v", err))
+		return err
+	}
+
+	slog.Info("DB", "action", "insertDocuments", "colName", colName, "documents", documents)
+	return nil
+}
+
+// Update a document in the database
+func UpdateDocument(colName string, filter interface{}, update interface{}) error {
+	mongoDatabase := getEnv("MONGODB_DATABASE", "hx")
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel()
+
+	collection := client.Database(mongoDatabase).Collection(colName)
+	_, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		slog.Error("DB", "error", fmt.Sprintf("Failed to update document: %v", err))
+		return err
+	}
+
+	slog.Info("DB", "action", "updateDocument", "colName", colName, "filter", filter, "document", update)
 	return nil
 }
 
 // Get document from database
 func GetDocument[T any](colName string, filter interface{}) ([]T, error) {
-	var results []T
 	mongoDatabase := getEnv("MONGODB_DATABASE", "hx")
+	var results []T
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel()
 
 	collection := client.Database(mongoDatabase).Collection(colName)
-	cursor, err := collection.Find(context.TODO(), filter)
+	cursor, err := collection.Find(ctx, filter)
 	if err != nil {
 		slog.Error("DB", "error", fmt.Sprintf("Error querying document: %v", err.Error()))
+		return results, err
 	}
-	defer cursor.Close(context.TODO())
+	defer cursor.Close(ctx)
 
-	if err = cursor.All(context.TODO(), &results); err != nil {
-		logger.LogErrorFatal("CALLER", fmt.Sprintf("Problem with MongoDB cursor: %v", err.Error()))
+	if err = cursor.All(ctx, &results); err != nil {
+		logger.LogErrorFatal("DB", fmt.Sprintf("Problem with MongoDB cursor: %v", err.Error()))
+	}
+
+	if len(results) == 0 {
+		err = fmt.Errorf("the database returned nothing for the given query: %v", filter)
 	}
 
 	return results, err
