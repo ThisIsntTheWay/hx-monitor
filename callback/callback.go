@@ -12,8 +12,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/thisisnttheway/hx-checker/db"
 	"github.com/thisisnttheway/hx-checker/logger"
+	"github.com/thisisnttheway/hx-checker/models"
 	"github.com/thisisnttheway/hx-checker/transcriptParser"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.ngrok.com/ngrok"
 	"golang.ngrok.com/ngrok/config"
 )
@@ -81,43 +85,6 @@ func IsCallbackurlSet() bool {
 	return CallbackUrl != ""
 }
 
-// ToDo: Fix - Doesn't remove all entries
-func sanitizePartialTranscriptions(s []TranscriptionRequest) []TranscriptionRequest {
-	// Partial transcripts all have the same sequence ID, but different timestamps
-	// As such, we'll have to resort to sorting by timestamps
-	sort.Slice(s, func(i, j int) bool {
-		return s[i].Timestamp.Before(s[j].Timestamp)
-	})
-
-	// First, remove all interim entries that do not meet the minimal length
-	const minLength int = 16
-	var intermediateResults []TranscriptionRequest
-	for _, entry := range s {
-		entry.IsInterim = entry.TranscriptionData.Confidence == 0
-		if len(entry.TranscriptionData.Transcript) >= minLength || !entry.IsInterim {
-			intermediateResults = append(intermediateResults, entry)
-		}
-	}
-
-	// Secondly, remove all interim entries but keep track of the last entry
-	var result []TranscriptionRequest
-	var lastInterim *TranscriptionRequest
-	for _, entry := range intermediateResults {
-		if entry.TranscriptionData.Confidence == 0 {
-			lastInterim = &entry
-		} else {
-			result = append(result, entry)
-		}
-	}
-
-	// Append last inerim entry to final result
-	if lastInterim != nil {
-		result = append(result, *lastInterim)
-	}
-
-	return result
-}
-
 func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -146,6 +113,13 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 		CallbackSource: r.FormValue("CallbackSource"),
 	}
 
+	// DB object
+	insertObj := models.Call{
+		ID:     primitive.NewObjectID(),
+		SID:    statusCallback.CallSID,
+		Status: statusCallback.CallStatus,
+	}
+
 	if r.FormValue("SequenceNumber") != "" {
 		sn, err := strconv.ParseInt(r.FormValue("SequenceNumber"), 10, 8)
 		if err != nil {
@@ -155,8 +129,12 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Set a default timestamp, Twilio will only return one if CallStatus = "completed"
+	insertObj.Time = time.Now()
+
 	badStates := []string{"busy", "no-answer", "canceled", "failed"}
 	if statusCallback.CallStatus == "completed" {
+		insertObj.Time = statusCallback.Timestamp
 		convertedDuration, err := strconv.ParseInt(r.FormValue("Duration"), 10, 8)
 		if err != nil {
 			slog.Error("CALLBACK", "message", "Failed converting duration", "source", r.FormValue("Duration"), "error", err.Error())
@@ -165,13 +143,24 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 		statusCallback.Duration = int8(convertedDuration)
 	} else if slices.Contains(badStates, statusCallback.CallStatus) {
 		slog.Error("CALLBACK", "callSid", statusCallback.CallSID, "status", statusCallback.CallStatus, "action", "requeue")
-		// ToDo: Requeue accordingly
 	}
 
 	slog.Info("CALLBACK", "event", "receivedEvent", "statusCallback", statusCallback)
 
 	statusCallbacks = append(statusCallbacks, statusCallback)
-	// ToDo: Insert call into db once completed
+
+	var numbers []models.Number
+	numbers, dbErr := searchDbForNumber(statusCallback.To)
+	if dbErr != nil {
+		slog.Error("CALLBACK", "message", "Could not obtain number for given 'TO'", "error", dbErr, "numberTo", statusCallback.To)
+	} else {
+		insertObj.NumberID = numbers[0].ID
+	}
+
+	err := db.InsertDocument("calls", insertObj)
+	if err != nil {
+		slog.Error("CALLBACK", "message", "Could not insert given statusCallback into DB", "error", err)
+	}
 }
 
 func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
@@ -258,8 +247,37 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 		logFields = append(logFields, "finalTranscript", finalTranscript)
 
 		airspaceStatus := transcriptParser.ParseTranscript(finalTranscript, time.Now())
-		o, _ := json.MarshalIndent(airspaceStatus, "", "  ")
+		slog.Debug("CALLBACK", "event", "generatedAirspaceStatus", "airspaceStatus", airspaceStatus)
+
+		// Update HX area
+		// 1. Get CallSid -> Get Number -> Get HXArea
+		// 2. Get HXAreas -> Update them
+		// 2. Update hx_areas and hx_sub_areas in DB
+		number, err := mapCallSidToNumber(transcription.CallSid)
+		if err != nil {
+			slog.Error("CALLBACK", "action", "mapCallSidToNumber", "callSid", transcription.CallSid, "error", err)
+		}
+
+		area, err := mapNumberNameToHxArea(number.Name)
+		if err != nil {
+			slog.Error("CALLBACK", "action", "mapNumberNameToHxArea", "numberName", number.Name, "error", err)
+		}
+
+		o, _ := json.Marshal(area)
 		fmt.Println(string(o))
+
+		// Update DB
+		area.NextAction = airspaceStatus.NextUpdate
+		area.SubAreas = createHxSubAreas(airspaceStatus, area.Name)
+
+		err = db.UpdateDocument(
+			"hx_areas",
+			bson.D{{"_id", area.ID}},
+			bson.D{{"$set", area}},
+		)
+		if err != nil {
+			slog.Error("CALLBACK", "error", err)
+		}
 	}
 
 	slog.Info("CALLBACK", logFields...)
