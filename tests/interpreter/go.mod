@@ -1,6 +1,8 @@
 module interpreter
 
-go 1.22.7
+go 1.23
+
+toolchain go1.23.3
 
 require (
 	github.com/fatih/color v1.18.0 // indirect
