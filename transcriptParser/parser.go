@@ -125,7 +125,8 @@ func parseTimeToCurrentDate(timeString string) (time.Time, error) {
 
 // Extract time segments; Next updates and flight operating hours
 func parseTimeSegments(transcript string) []TimeSegment {
-	patternTimeSegments := `\d{1,2}[: ]\d{2}`
+	// The \d{3,4} can also falsely match years
+	patternTimeSegments := `\d{1,2}[: ]\d{2}|\d{3,4}`
 
 	// Split all time segments by the "local time" substring.
 	// Segment 1: Message update times,
@@ -141,8 +142,8 @@ func parseTimeSegments(transcript string) []TimeSegment {
 	splitLocalTime := strings.Split(transcript, "local time")
 	for i, split := range splitLocalTime {
 		trimmed := strings.TrimSpace(split)
-		if onlyOneUpdateTime && i == 1 {
-			continue
+		if onlyOneUpdateTime && i > 0 {
+			break
 		}
 
 		if regexp.MustCompile(`\d`).MatchString(trimmed) {
@@ -156,7 +157,41 @@ func parseTimeSegments(transcript string) []TimeSegment {
 
 			var segments []time.Time
 			for _, match := range matches {
-				replacedString := strings.Replace(match[0], " ", ":", 1)
+				isYear := false
+
+				// Prevent years from being interpreted as times
+				// Years will likely be prepended by the string "[of] month"
+				matchYear := regexp.MustCompile(`(1|2)\d{1}\d{2}`).FindAllString(match[0], -1)
+				if len(matchYear) > 0 {
+					reg := fmt.Sprintf("(of(\\s)?)?\\w+ %s", matchYear[0])
+					re := regexp.MustCompile(reg)
+					matchYearContext := re.FindAllString(trimmed, -1)
+
+					isYear = len(matchYearContext) > 0
+					slog.Debug(
+						"PARSER",
+						"matchYear", matchYear,
+						"matchYearContext", matchYearContext,
+						"isYear", isYear,
+					)
+				}
+
+				if isYear {
+					continue
+				}
+
+				// Transform 730 -> 7 30
+				// This, perhaps naively, assumes that the first digit is the hour
+				var transformedString string = match[0]
+				if len(transformedString) == 3 {
+					transformedString = fmt.Sprintf(
+						"%s %s",
+						string(transformedString[0]),
+						string(transformedString[1:]),
+					)
+				}
+
+				replacedString := strings.Replace(transformedString, " ", ":", 1)
 				convertedTime, err := parseTimeToCurrentDate(replacedString)
 				if err != nil {
 					panic(err)
@@ -180,7 +215,7 @@ func parseTimeSegments(transcript string) []TimeSegment {
 		if len(m) == 4 {
 			var parsedDate time.Time
 			var processedDate time.Time
-			slog.Debug("PARSER", "message", "Transcript seems to contain concrete date")
+			slog.Debug("PARSER", "action", "parseTimeSegments", "message", "Transcript seems to contain concrete date")
 			parsedDate, err := time.Parse(
 				"2 January 2006",
 				fmt.Sprintf("%s %s %s", m[1], m[2], m[3]),
@@ -217,7 +252,7 @@ func parseTimeSegments(transcript string) []TimeSegment {
 	}
 
 	if len(timeSegments) == 0 {
-		slog.Error("PARSER", "message", "Was unable to detect time segments", "transcript", transcript)
+		slog.Error("PARSER", "action", "parseTimeSegments", "gotTimeSegments", false, "transcript", transcript)
 		return nil
 	}
 
@@ -237,7 +272,7 @@ func ParseTranscript(transcript string, referenceTime time.Time) AirspaceStatus 
 	// Assign time segments
 	var updateTimeTimeSegment TimeSegment
 	var operatingHoursTimeSegment TimeSegment
-	slog.Info("PARSER", "action", "assembleTimeSegments", "timeSegments", timeSegments)
+	slog.Debug("PARSER", "action", "assembleTimeSegments", "timeSegments", timeSegments)
 	for _, segment := range timeSegments {
 		if segment.Type == "UpdateTimes" {
 			updateTimeTimeSegment = segment
@@ -248,9 +283,9 @@ func ParseTranscript(transcript string, referenceTime time.Time) AirspaceStatus 
 
 	nextUpdateTime := time.Time{}
 	for _, segment := range updateTimeTimeSegment.Times {
-		slog.Info("PARSER", "action", "setUpdateTime", "candidateSegment", segment)
+		slog.Debug("PARSER", "action", "setUpdateTime", "candidateSegment", segment)
 		if referenceTime.Before(segment) {
-			slog.Info("PARSER", "action", "setUpdateTimeFinal", "candidateSegment", segment)
+			slog.Debug("PARSER", "action", "setUpdateTimeFinal", "candidateSegment", segment)
 			nextUpdateTime = segment
 			break
 		}
