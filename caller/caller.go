@@ -130,9 +130,7 @@ func Call(number string, startTranscription bool) (CallResponse, error) {
 
 	if startTranscription {
 		// Apparently you could use twilio-go/twiml/twiml.go instead of assembling a string but idk how
-
 		transcriptionHints := "$DAY, CTR, TMA, active, inactive"
-		// Adding hints seems to break googles speech-to-text engine after the first sentence
 
 		additionalParams := fmt.Sprintf("partialResults='%v' track='inbound_track'", callback.UsesPartialTranscriptionResults())
 

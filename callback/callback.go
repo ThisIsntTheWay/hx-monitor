@@ -86,6 +86,8 @@ func IsCallbackurlSet() bool {
 }
 
 func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
+	doDbInsert := false
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
@@ -134,6 +136,7 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 
 	badStates := []string{"busy", "no-answer", "canceled", "failed"}
 	if statusCallback.CallStatus == "completed" {
+		doDbInsert = true
 		insertObj.Time = statusCallback.Timestamp
 		convertedDuration, err := strconv.ParseInt(r.FormValue("Duration"), 10, 8)
 		if err != nil {
@@ -142,6 +145,7 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 		}
 		statusCallback.Duration = int8(convertedDuration)
 	} else if slices.Contains(badStates, statusCallback.CallStatus) {
+		doDbInsert = true
 		slog.Error("CALLBACK", "callSid", statusCallback.CallSID, "status", statusCallback.CallStatus, "action", "requeue")
 	}
 
@@ -157,9 +161,11 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 		insertObj.NumberID = numbers[0].ID
 	}
 
-	err := db.InsertDocument("calls", insertObj)
-	if err != nil {
-		slog.Error("CALLBACK", "message", "Could not insert given statusCallback into DB", "error", err)
+	if doDbInsert {
+		err := db.InsertDocument("calls", insertObj)
+		if err != nil {
+			slog.Error("CALLBACK", "message", "Could not insert given statusCallback into DB", "error", err)
+		}
 	}
 }
 
