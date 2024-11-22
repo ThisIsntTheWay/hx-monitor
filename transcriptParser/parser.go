@@ -6,41 +6,14 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/thisisnttheway/hx-checker/models"
 )
 
-type AirspaceStatus struct {
-	Areas          []Area      `json:"areas"`
-	NextUpdate     time.Time   `json:"nextUpdate"`
-	OperatingHours []time.Time `json:"operatingHours"`
-}
-
-type Area struct {
-	Index  int  `json:"index"`
-	Status bool `json:"status"`
-}
-
-type TimeSegment struct {
-	Type  string
-	Times []time.Time
-}
-
-// ---- Testing -----
-type HxAreaTestJson struct {
-	HxArea                      string            `json:"hx_area"`
-	Transcript                  string            `json:"transcript"`
-	AdditionalNote              string            `json:"additionalNote"`
-	ExpectedVerdict             string            `json:"expectedVerdict"`
-	ExpectedHxAreasActiveStatus []map[string]bool `json:"expectedHxAreasActiveStatus"`
-	TestingTimeAndDate          time.Time         `json:"testingTimeAndDate"`
-	ExpectedNextAction          time.Time         `json:"expectedNextAction"`
-}
-
-// ------------------
-
 // parseTranscript parses the provided transcript and extracts the airspace status
-func parseAirspaceStates(transcript string) AirspaceStatus {
+func parseAirspaceStates(transcript string) models.AirspaceStatus {
 	// Default areas
-	areas := []Area{
+	areas := []models.Area{
 		{0, false}, // CTR
 		{1, false}, // TMA x
 		{2, false},
@@ -99,7 +72,7 @@ func parseAirspaceStates(transcript string) AirspaceStatus {
 	}
 
 	// Return the parsed data
-	return AirspaceStatus{
+	return models.AirspaceStatus{
 		Areas:      areas,
 		NextUpdate: time.Unix(0, 0),
 	}
@@ -124,7 +97,7 @@ func parseTimeToCurrentDate(timeString string) (time.Time, error) {
 }
 
 // Extract time segments; Next updates and flight operating hours
-func parseTimeSegments(transcript string) []TimeSegment {
+func parseTimeSegments(transcript string) []models.TimeSegment {
 	// The \d{3,4} can also falsely match years
 	patternTimeSegments := `\d{1,2}[: ]\d{2}|\d{3,4}`
 
@@ -204,7 +177,7 @@ func parseTimeSegments(transcript string) []TimeSegment {
 		}
 	}
 
-	var rO []TimeSegment
+	var rO []models.TimeSegment
 
 	// If yes, then the update time will most likely be on a future day
 	if onlyOneUpdateTime {
@@ -248,7 +221,7 @@ func parseTimeSegments(transcript string) []TimeSegment {
 			}
 		}
 
-		rO = append(rO, TimeSegment{Type: "OperatingHours", Times: operatingHours})
+		rO = append(rO, models.TimeSegment{Type: "OperatingHours", Times: operatingHours})
 	}
 
 	if len(timeSegments) == 0 {
@@ -256,22 +229,22 @@ func parseTimeSegments(transcript string) []TimeSegment {
 		return nil
 	}
 
-	rO = append(rO, TimeSegment{Type: "UpdateTimes", Times: timeSegments[0]})
+	rO = append(rO, models.TimeSegment{Type: "UpdateTimes", Times: timeSegments[0]})
 	return rO
 }
 
-func ParseTranscript(transcript string, referenceTime time.Time) AirspaceStatus {
+func ParseTranscript(transcript string, referenceTime time.Time) models.AirspaceStatus {
 	slog.Info("PARSER", "event", "startParse", "transcript", transcript, "referenceTime", referenceTime)
 
-	var timeSegments []TimeSegment
-	var airspaceState AirspaceStatus
+	var timeSegments []models.TimeSegment
+	var airspaceState models.AirspaceStatus
 
 	timeSegments = parseTimeSegments(transcript)
 	airspaceState = parseAirspaceStates(transcript)
 
 	// Assign time segments
-	var updateTimeTimeSegment TimeSegment
-	var operatingHoursTimeSegment TimeSegment
+	var updateTimeTimeSegment models.TimeSegment
+	var operatingHoursTimeSegment models.TimeSegment
 	slog.Debug("PARSER", "action", "assembleTimeSegments", "timeSegments", timeSegments)
 	for _, segment := range timeSegments {
 		if segment.Type == "UpdateTimes" {

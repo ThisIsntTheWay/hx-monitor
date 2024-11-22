@@ -8,7 +8,6 @@ import (
 
 	"github.com/thisisnttheway/hx-checker/db"
 	"github.com/thisisnttheway/hx-checker/models"
-	"github.com/thisisnttheway/hx-checker/transcriptParser"
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -70,8 +69,36 @@ func mapNumberNameToHxArea(numberName string) (models.HXArea, error) {
 	return result[0], nil
 }
 
+// Sets an HX area to be bad, i.e. all sub areas being false and last action success being false
+func setBadHxStatus(referenceArea string) error {
+	referenceAreaObj, err := db.GetDocument[models.HXArea]("hx_areas", bson.M{"name": referenceArea})
+	if err != nil {
+		return err
+	}
+
+	var subAreas []models.HXSubArea
+	for _, area := range referenceAreaObj[0].SubAreas {
+		subAreas = append(subAreas, models.HXSubArea{
+			Fullname: area.Fullname,
+			Name:     area.Name,
+			Status:   false,
+		})
+	}
+
+	referenceAreaObj[0].SubAreas = subAreas
+	referenceAreaObj[0].LastActionSuccess = false
+
+	err = db.UpdateDocument(
+		"hx_areas",
+		bson.D{{"_id", referenceAreaObj[0].ID}},
+		bson.D{{"$set", referenceAreaObj[0]}},
+	)
+
+	return err
+}
+
 // Creates HX sub areas based on an AirspaceStatus for a reference area
-func createHxSubAreas(airspaceStatus transcriptParser.AirspaceStatus, referenceArea string) []models.HXSubArea {
+func createHxSubAreas(airspaceStatus models.AirspaceStatus, referenceArea string) []models.HXSubArea {
 	var result []models.HXSubArea
 
 	for _, area := range airspaceStatus.Areas {

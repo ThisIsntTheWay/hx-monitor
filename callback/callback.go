@@ -28,6 +28,10 @@ var UsePartialTranscriptionResults bool
 var _transcriptionRequests []TranscriptionRequest
 var statusCallbacks []StatusCallback
 
+// To prevent mapCallSidToNumber() from failing, at the very least 'initiated' can't be ignored
+var ignoreCallStates = []string{"queued", "ringing", "in-progress"}
+var badCallStates = []string{"busy", "no-answer", "canceled", "failed"}
+
 type StatusCallback struct {
 	CallSID        string
 	Direction      string
@@ -86,8 +90,6 @@ func IsCallbackurlSet() bool {
 }
 
 func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
-	doDbInsert := false
-
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
@@ -134,9 +136,7 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 	// Set a default timestamp, Twilio will only return one if CallStatus = "completed"
 	insertObj.Time = time.Now()
 
-	badStates := []string{"busy", "no-answer", "canceled", "failed"}
 	if statusCallback.CallStatus == "completed" {
-		doDbInsert = true
 		insertObj.Time = statusCallback.Timestamp
 		convertedDuration, err := strconv.ParseInt(r.FormValue("Duration"), 10, 8)
 		if err != nil {
@@ -144,9 +144,27 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 			convertedDuration = 0
 		}
 		statusCallback.Duration = int8(convertedDuration)
-	} else if slices.Contains(badStates, statusCallback.CallStatus) {
-		doDbInsert = true
+	} else if slices.Contains(badCallStates, statusCallback.CallStatus) {
 		slog.Error("CALLBACK", "callSid", statusCallback.CallSID, "status", statusCallback.CallStatus, "action", "requeue")
+
+		// Update area accordingly
+		const action = "setBadHxStatus"
+		n, err := mapCallSidToNumber(statusCallback.CallSID)
+		if err != nil {
+			slog.Error("CALLBACK", "action", action, "error", err)
+		}
+
+		h, err := mapNumberNameToHxArea(n.Name)
+		if err != nil {
+			slog.Error("CALLBACK", "action", action, "error", err)
+		}
+
+		err = setBadHxStatus(h.Name)
+		if err != nil {
+			slog.Error("CALLBACK", "action", action, "error", err)
+		} else {
+			slog.Info("CALLBACK", "action", action, "success", true)
+		}
 	}
 
 	slog.Info("CALLBACK", "event", "receivedEvent", "statusCallback", statusCallback)
@@ -161,6 +179,7 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 		insertObj.NumberID = numbers[0].ID
 	}
 
+	doDbInsert := !slices.Contains(ignoreCallStates, statusCallback.CallStatus)
 	if doDbInsert {
 		err := db.InsertDocument("calls", insertObj)
 		if err != nil {
@@ -286,6 +305,7 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 
 		area.NextAction = airspaceStatus.NextUpdate
 		area.SubAreas = createHxSubAreas(airspaceStatus, area.Name)
+		area.LastActionSuccess = true
 
 		err = db.UpdateDocument(
 			"hx_areas",
