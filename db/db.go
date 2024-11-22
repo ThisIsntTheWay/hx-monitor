@@ -8,12 +8,14 @@ import (
 	"time"
 
 	"github.com/thisisnttheway/hx-checker/logger"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var client *mongo.Client
 var contextTimeout time.Duration = 6 * time.Second
+var mongoDatabase = getEnv("MONGODB_DATABASE", "hx")
 
 // Get environment variable with a default value
 func getEnv(key string, defaultValue string) string {
@@ -55,7 +57,6 @@ func Connect() *mongo.Client {
 
 // Insert single document into database
 func InsertDocument(colName string, document interface{}) error {
-	mongoDatabase := getEnv("MONGODB_DATABASE", "hx")
 	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel()
 
@@ -72,7 +73,6 @@ func InsertDocument(colName string, document interface{}) error {
 
 // Insert many documents into database
 func InsertDocuments(colName string, documents []interface{}) error {
-	mongoDatabase := getEnv("MONGODB_DATABASE", "hx")
 	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel()
 
@@ -89,7 +89,6 @@ func InsertDocuments(colName string, documents []interface{}) error {
 
 // Update a document in the database
 func UpdateDocument(colName string, filter interface{}, update interface{}) error {
-	mongoDatabase := getEnv("MONGODB_DATABASE", "hx")
 	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel()
 
@@ -104,9 +103,29 @@ func UpdateDocument(colName string, filter interface{}, update interface{}) erro
 	return nil
 }
 
+// Perform an aggregation operation
+func Aggregate(colName string, pipeline mongo.Pipeline) ([]bson.M, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel()
+
+	collection := client.Database(mongoDatabase).Collection(colName)
+	cursor, err := collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		slog.Error("DB", "error", fmt.Sprintf("Error querying document: %v", err.Error()))
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var results []bson.M
+	if err = cursor.All(ctx, &results); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
 // Get document from database
 func GetDocument[T any](colName string, filter interface{}) ([]T, error) {
-	mongoDatabase := getEnv("MONGODB_DATABASE", "hx")
 	var results []T
 	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel()
