@@ -1,4 +1,4 @@
-package transcriptParser
+package transcript
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"github.com/thisisnttheway/hx-checker/models"
 )
 
-// parseTranscript parses the provided transcript and extracts the airspace status
+// Parses the provided transcript to an AirspaceStatus
 func parseAirspaceStates(transcript string) models.AirspaceStatus {
 	// Default areas
 	areas := []models.Area{
@@ -47,7 +47,7 @@ func parseAirspaceStates(transcript string) models.AirspaceStatus {
 	splitCtr := strings.Split(transcript, "ctr")
 	splitActive := strings.Split(splitCtr[ctrSubstringIndex], "active")
 
-	// If contained in the first split segment, then no areas are active
+	// If keyword occurs in the first segment, then no areas will be active
 	hasAreNotActive := strings.Contains(transcript, "are not active")
 
 	everyTmaTargeted := strings.Contains(splitActive[0], "all tma")
@@ -71,13 +71,13 @@ func parseAirspaceStates(transcript string) models.AirspaceStatus {
 		// Everything is inactive, therefore preserve defaults
 	}
 
-	// Return the parsed data
 	return models.AirspaceStatus{
 		Areas:      areas,
 		NextUpdate: time.Unix(0, 0),
 	}
 }
 
+// Get the current date but set hours and minutes of an arbitrary timeString
 func parseTimeToCurrentDate(timeString string) (time.Time, error) {
 	parsedTime, err := time.Parse("15:04", timeString)
 	if err != nil {
@@ -86,7 +86,6 @@ func parseTimeToCurrentDate(timeString string) (time.Time, error) {
 
 	now := time.Now()
 
-	// Combine the parsed time with the current date in the local timezone
 	finalTime := time.Date(
 		now.Year(), now.Month(), now.Day(),
 		parsedTime.Hour(), parsedTime.Minute(), 0, 0,
@@ -98,7 +97,7 @@ func parseTimeToCurrentDate(timeString string) (time.Time, error) {
 
 // Extract time segments; Next updates and flight operating hours
 func parseTimeSegments(transcript string) []models.TimeSegment {
-	// The \d{3,4} can also falsely match years
+	// \d{3,4} can also falsely match years - will be handled below
 	patternTimeSegments := `\d{1,2}[: ]\d{2}|\d{3,4}`
 
 	// Split all time segments by the "local time" substring.
@@ -205,6 +204,7 @@ func parseTimeSegments(transcript string) []models.TimeSegment {
 			timeSegments[0][0] = processedDate
 		} else {
 			// ToDo: handle next update time not necessarily being on monday
+			// Haven't seen this in Meiringens transcript yet
 			daysUntilMonday := (int(time.Monday) - int(timeSegments[0][0].Weekday()) + 7) % 7
 			if daysUntilMonday == 0 {
 				daysUntilMonday = 7
@@ -214,11 +214,8 @@ func parseTimeSegments(transcript string) []models.TimeSegment {
 		}
 	} else {
 		var operatingHours []time.Time
-		for i := range timeSegments {
-			// Skip first timeSegment, the update times
-			if i > 0 {
-				operatingHours = append(operatingHours, timeSegments[i]...)
-			}
+		for i := range timeSegments[1 : len(timeSegments)-1] {
+			operatingHours = append(operatingHours, timeSegments[i]...)
 		}
 
 		rO = append(rO, models.TimeSegment{Type: "OperatingHours", Times: operatingHours})
@@ -233,6 +230,7 @@ func parseTimeSegments(transcript string) []models.TimeSegment {
 	return rO
 }
 
+// Parse a transcript based on a reference time
 func ParseTranscript(transcript string, referenceTime time.Time) models.AirspaceStatus {
 	slog.Info("PARSER", "event", "startParse", "transcript", transcript, "referenceTime", referenceTime)
 

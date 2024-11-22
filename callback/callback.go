@@ -15,7 +15,7 @@ import (
 	"github.com/thisisnttheway/hx-checker/db"
 	"github.com/thisisnttheway/hx-checker/logger"
 	"github.com/thisisnttheway/hx-checker/models"
-	"github.com/thisisnttheway/hx-checker/transcriptParser"
+	"github.com/thisisnttheway/hx-checker/transcript"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.ngrok.com/ngrok"
@@ -41,7 +41,7 @@ type StatusCallback struct {
 	SequenceNumber int8
 	CallbackSource string
 	Duration       int8      // only when status = completed
-	Timestamp      time.Time // only when status = completed
+	Timestamp      time.Time // RFC1123
 }
 
 type TranscriptionRequest struct {
@@ -124,23 +124,30 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 		Status: statusCallback.CallStatus,
 	}
 
+	var timeToUse time.Time = time.Now()
+	t, err := time.Parse(time.RFC1123, r.FormValue("Timestamp"))
+	if err != nil {
+		slog.Error("CALLBACK", "action", "parseFormTimestamp", "error", err)
+	} else {
+		timeToUse = t
+	}
+
+	insertObj.Time = timeToUse
+
 	if r.FormValue("SequenceNumber") != "" {
 		sn, err := strconv.ParseInt(r.FormValue("SequenceNumber"), 10, 8)
 		if err != nil {
-			slog.Error("CALLBACK", "message", "Failed converting sequenceNumber", "source", r.FormValue("SequenceNumber"), "error", err.Error())
+			slog.Error("CALLBACK", "action", "convertSequenceNumber", "source", r.FormValue("SequenceNumber"), "error", err)
 		} else {
 			statusCallback.SequenceNumber = int8(sn)
 		}
 	}
 
-	// Set a default timestamp, Twilio will only return one if CallStatus = "completed"
-	insertObj.Time = time.Now()
-
 	if statusCallback.CallStatus == "completed" {
 		insertObj.Time = statusCallback.Timestamp
 		convertedDuration, err := strconv.ParseInt(r.FormValue("Duration"), 10, 8)
 		if err != nil {
-			slog.Error("CALLBACK", "message", "Failed converting duration", "source", r.FormValue("Duration"), "error", err.Error())
+			slog.Error("CALLBACK", "action", "convertCallDuration", "source", r.FormValue("Duration"), "error", err)
 			convertedDuration = 0
 		}
 		statusCallback.Duration = int8(convertedDuration)
@@ -270,7 +277,7 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 		finalTranscript := handleTranscriptionStopped(transcription)
 		logFields = append(logFields, "finalTranscript", finalTranscript)
 
-		airspaceStatus := transcriptParser.ParseTranscript(finalTranscript, time.Now())
+		airspaceStatus := transcript.ParseTranscript(finalTranscript, time.Now())
 		slog.Debug("CALLBACK", "event", "generatedAirspaceStatus", "airspaceStatus", airspaceStatus)
 
 		// Update HX area

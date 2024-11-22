@@ -17,7 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-var twilioTimeFormat string = "Mon, 02 Jan 2006 15:04:05 -0700"
+const twilioTimeFormat string = "Mon, 02 Jan 2006 15:04:05 -0700"
 
 type CallResponse struct {
 	SID         string
