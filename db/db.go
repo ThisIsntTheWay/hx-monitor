@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/thisisnttheway/hx-checker/logger"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -104,7 +103,8 @@ func UpdateDocument(colName string, filter interface{}, update interface{}) erro
 }
 
 // Perform an aggregation operation
-func Aggregate(colName string, pipeline mongo.Pipeline) ([]bson.M, error) {
+func Aggregate[T any](colName string, pipeline mongo.Pipeline) ([]T, error) {
+	var results []T
 	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel()
 
@@ -112,13 +112,12 @@ func Aggregate(colName string, pipeline mongo.Pipeline) ([]bson.M, error) {
 	cursor, err := collection.Aggregate(ctx, pipeline)
 	if err != nil {
 		slog.Error("DB", "error", fmt.Sprintf("Error querying document: %v", err.Error()))
-		return nil, err
+		return results, err
 	}
 	defer cursor.Close(ctx)
 
-	var results []bson.M
 	if err = cursor.All(ctx, &results); err != nil {
-		return nil, err
+		return results, err
 	}
 
 	return results, nil
