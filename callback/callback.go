@@ -368,11 +368,11 @@ func handleTranscriptionStopped(finalTranscription TranscriptionRequest) string 
 func Serve() {
 	http.HandleFunc("/call", handleCallsCallback)
 	http.HandleFunc("/transcription", handleTransciptionsCallback)
-	slog.Info("CALLBACK", "message", "Starting webserver")
 
+	// ngrok automatically uses the env var so no need to pass the actual value anywhere
 	_, exists := os.LookupEnv("NGROK_AUTHTOKEN")
+	slog.Info("CALLBACK", "action", "startWebserver", "useNgrok", exists)
 	if exists {
-		slog.Info("CALLBACK", "message", "Will use ngrok")
 		listener, err := ngrok.Listen(
 			context.Background(),
 			config.HTTPEndpoint(),
