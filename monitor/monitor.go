@@ -20,6 +20,10 @@ type ActionableNumber struct {
 	MustActNow bool
 }
 
+// { "<area>": <num_fails> }
+var _areaFailureCounts map[string]int8
+var maxFailsPerArea int8 = 3
+
 // Determines if an area is being processed based on its last_action timestamp and associated, non-completed calls
 func areaIsBeingProcessed(area models.HXArea) (bool, error) {
 	// based on models.HXArea
@@ -63,7 +67,13 @@ func areaIsBeingProcessed(area models.HXArea) (bool, error) {
 		}},
 	})
 	if err != nil {
-		panic(err)
+		slog.Error("MONITOR",
+			"action", "aggregateHxAreas",
+			"error", err,
+			"areaId", area.ID,
+			"areaLastAction", area.LastAction,
+		)
+		return false, err
 	}
 
 	if len(results) == 0 {
@@ -75,11 +85,11 @@ func areaIsBeingProcessed(area models.HXArea) (bool, error) {
 		)
 	}
 
-	hasCompletedSuccessfully := false
+	hasCompletedCalls := false
 	if len(results[0].CallDetails) > 0 {
 		for _, s := range results[0].CallDetails {
 			if s.Status == "completed" {
-				hasCompletedSuccessfully = true
+				hasCompletedCalls = true
 				break
 			}
 		}
@@ -96,11 +106,32 @@ func areaIsBeingProcessed(area models.HXArea) (bool, error) {
 	o, _ := json.Marshal(results)
 	slog.Debug("MONITOR",
 		"action", "aggregateHxAreas",
-		"hasCompletedSuccessfully", hasCompletedSuccessfully,
+		"hasCompletedCalls", hasCompletedCalls,
 		"resultFromDb", string(o),
 	)
 
-	return hasCompletedSuccessfully, nil
+	// If area has completed calls = Area is not being processed
+	return !hasCompletedCalls, nil
+}
+
+// Increments the amount of fails for an area and returns the amount of fails (post increment)
+func incrementAreaFails(areaName string) int8 {
+	v, ok := _areaFailureCounts[areaName]
+	if ok {
+		_areaFailureCounts[areaName] = v + 1
+	} else {
+		_areaFailureCounts[areaName] = 1
+	}
+
+	return _areaFailureCounts[areaName]
+}
+
+// Removes area failures for a given area
+func removeAreaFails(areaName string) {
+	_, exists := _areaFailureCounts[areaName]
+	if exists {
+		delete(_areaFailureCounts, areaName)
+	}
 }
 
 // Call a number and start transcription
@@ -127,7 +158,6 @@ func MonitorHxAreas() {
 		)
 	}
 
-	var actionableNumbers []ActionableNumber
 	for _, hxArea := range hxAreas {
 		mustActNow := time.Now().After(hxArea.NextAction)
 		slog.Info("MONITOR",
@@ -135,53 +165,57 @@ func MonitorHxAreas() {
 			"nextAction", hxArea.NextAction,
 			"numberName", hxArea.NumberName,
 			"mustActNow", mustActNow,
+			"lastActionSuccess", hxArea.LastActionSuccess,
 		)
 
 		if mustActNow {
 			// Check if this number is not already queued for action
-			isQueued := false
-			for _, a := range actionableNumbers {
-				if a.NumberName == hxArea.NumberName && a.MustActNow {
-					isQueued = true
-					slog.Debug("MONITOR",
-						"numberName", a.NumberName,
-						"skipped", true,
-						"reason", "Already queued",
-					)
-					break
+			b, _ := areaIsBeingProcessed(hxArea)
+			if !b {
+				if !hxArea.LastActionSuccess {
+					areaFails := incrementAreaFails(hxArea.Name)
+					if areaFails >= maxFailsPerArea {
+						slog.Warn("MONITOR",
+							"message", "Have exceeded the max amount of retries for area",
+							"areaName", hxArea.Name,
+							"fails", areaFails,
+							"maxFails", maxFailsPerArea,
+							"skip", true,
+						)
+					}
+
+					continue
 				}
-			}
 
-			if isQueued {
-				continue
-			}
+				number, err := db.GetDocument[models.Number]("numbers", bson.M{"name": hxArea.NumberName})
+				if err != nil {
+					slog.Error("MONITOR",
+						"message", fmt.Sprintf("Could not enumerate number '%s'", hxArea.NumberName),
+						"error", err.Error(),
+					)
+					continue
+				}
 
-			number, err := db.GetDocument[models.Number]("numbers", bson.M{"name": hxArea.NumberName})
-			if err != nil {
-				slog.Error("MONITOR",
-					"message", fmt.Sprintf("Could not enumerate number '%s'", hxArea.NumberName),
-					"error", err.Error(),
+				// Call and set last_action
+				slog.Info("MONITOR",
+					"action", "call",
+					"numberName", hxArea.NumberName,
+					"number", number[0].Number,
 				)
-				continue
+				initCallAndTranscription(number[0].Number)
+
+				db.UpdateDocument(
+					"hx_areas",
+					bson.M{"_id": hxArea.ID},
+					bson.D{{"$set",
+						bson.D{{"last_action", time.Now()}},
+					}},
+				)
+
+				// Updating the rest of the area is being handled by the callback module
 			}
-
-			actionableNumbers = append(actionableNumbers, ActionableNumber{hxArea.NumberName, mustActNow})
-
-			slog.Info("MONITOR",
-				"action", "call",
-				"numberName", hxArea.NumberName,
-				"number", number[0].Number,
-			)
-			initCallAndTranscription(number[0].Number)
-
-			// Set last action
-			db.UpdateDocument(
-				"hx_areas",
-				bson.M{"_id": hxArea.ID},
-				bson.D{{"$set",
-					bson.D{{"last_action", time.Now()}},
-				}},
-			)
+		} else {
+			removeAreaFails(hxArea.Name)
 		}
 	}
 }

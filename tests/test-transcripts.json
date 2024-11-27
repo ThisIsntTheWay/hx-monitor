@@ -51,6 +51,23 @@
     },
     {
         "hx_area": "meiringen",
+        "transcript": "This message is updated at 7:30 1315 and 1705 local time. Today's flight operating hours are from 7:30 till 12:15 local time from 1300 to 1715 local time and from 1755 till 2215, local time. My ring and CTR and TMA 1 2 and 3 are active. TMA sectors, 4 5 and 6 Remain the activated until the next",
+        "additionalNote": "Transcript with interim passages",
+        "expectedVerdict": "AREA_PARTIALLY_ACTIVE",
+        "expectedHxAreasActiveStatus": [
+            {"1": true},
+            {"2": true},
+            {"3": true},
+            {"4": false},
+            {"5": false},
+            {"6": false},
+            {"0": true}
+        ],
+        "testingTimeAndDate": "2024-11-25T14:19:00+01:00",
+        "expectedNextAction": "2024-11-25T17:05:00+01:00"        
+    },
+    {
+        "hx_area": "meiringen",
         "transcript": "meiringen ctr and tma are not active\nexpect ctr and tma meiringen to be active again tomorrow from 7 30 local time\nif you hear this message after 7 30 local time, contact ...",
         "expectedVerdict": "AREA_NOT_ACTIVE",
         "expectedHxAreasActiveStatus": [
