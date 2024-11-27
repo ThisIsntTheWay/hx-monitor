@@ -4,15 +4,18 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/thisisnttheway/hx-checker/models"
 )
 
+var _thisYear int = time.Now().Year()
+
 // Parses the provided transcript to an AirspaceStatus
 func parseAirspaceStates(transcript string) models.AirspaceStatus {
-	// Default areas
+	// Default areas (Meiringen)
 	areas := []models.Area{
 		{0, false}, // CTR
 		{1, false}, // TMA x
@@ -29,6 +32,7 @@ func parseAirspaceStates(transcript string) models.AirspaceStatus {
 	transcript = strings.Replace(transcript, "my ring", "meiringen", -1)
 	transcript = strings.Replace(transcript, "pma", "tma", -1)
 	transcript = strings.Replace(transcript, "be act again", "be active again", -1)
+	transcript = strings.Replace(transcript, "the activated", "deactivated", -1)
 
 	// If true, then transcript is from a time outside flight operating hours
 	// As such, all mentioned sectors are inactive
@@ -133,34 +137,51 @@ func parseTimeSegments(transcript string) []models.TimeSegment {
 
 				// Prevent years from being interpreted as times
 				// Years will likely be prepended by the string "[of] month"
-				matchYear := regexp.MustCompile(`(1|2)\d{1}\d{2}`).FindAllString(match[0], -1)
+				matchYear := regexp.MustCompile(`2\d{1}\d{2}`).FindAllString(match[0], -1)
 				if len(matchYear) > 0 {
 					reg := fmt.Sprintf("(of(\\s)?)?\\w+ %s", matchYear[0])
 					re := regexp.MustCompile(reg)
 					matchYearContext := re.FindAllString(trimmed, -1)
 
-					isYear = len(matchYearContext) > 0
-					slog.Debug(
-						"PARSER",
-						"matchYear", matchYear,
-						"matchYearContext", matchYearContext,
-						"isYear", isYear,
-					)
+					if len(matchYearContext) > 0 {
+						// Prevent false positive (e.g. "1305 being interpreted as a year")
+						if y, err := strconv.Atoi(matchYear[0]); err == nil && y >= _thisYear {
+							// If string converts succesfully, then this is absolutely a year
+							// Meiringen will always say "... <month> 2024 ..."
+							_, err := time.Parse("January 2006", matchYearContext[0])
+							isYear = err == nil
+						}
+
+						slog.Debug(
+							"PARSER",
+							"matchYear", matchYear,
+							"matchYearContext", matchYearContext,
+							"isYear", isYear,
+						)
+					}
 				}
 
 				if isYear {
 					continue
 				}
 
-				// Transform 730 -> 7 30
-				// This, perhaps naively, assumes that the first digit is the hour
+				// Transform 730 -> 7 30 | 1305 -> 13 05
+				// In case of len(s) == 3, this will naively assume that the first digit is the hour
 				var transformedString string = match[0]
-				if len(transformedString) == 3 {
-					transformedString = fmt.Sprintf(
-						"%s %s",
-						string(transformedString[0]),
-						string(transformedString[1:]),
-					)
+				if !strings.Contains(match[0], ":") && !strings.Contains(match[0], " ") {
+					if len(transformedString) == 3 {
+						transformedString = fmt.Sprintf(
+							"%s %s",
+							string(transformedString[0]),
+							string(transformedString[1:]),
+						)
+					} else if len(transformedString) == 4 {
+						transformedString = fmt.Sprintf(
+							"%s %s",
+							string(transformedString[0:2]),
+							string(transformedString[2:]),
+						)
+					}
 				}
 
 				replacedString := strings.Replace(transformedString, " ", ":", 1)
@@ -187,7 +208,7 @@ func parseTimeSegments(transcript string) []models.TimeSegment {
 		if len(m) == 4 {
 			var parsedDate time.Time
 			var processedDate time.Time
-			slog.Debug("PARSER", "action", "parseTimeSegments", "message", "Transcript seems to contain concrete date")
+			slog.Info("PARSER", "action", "parseTimeSegments", "message", "Transcript seems to contain concrete date")
 			parsedDate, err := time.Parse(
 				"2 January 2006",
 				fmt.Sprintf("%s %s %s", m[1], m[2], m[3]),

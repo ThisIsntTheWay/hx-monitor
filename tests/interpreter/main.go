@@ -30,6 +30,9 @@ type TimeSegment struct {
 	Times []time.Time
 }
 
+var _refTime time.Time
+var _thisYear int = time.Now().Year()
+
 // ---- Testing -----
 type HxAreaTestJson struct {
 	HxArea                      string            `json:"hx_area"`
@@ -43,7 +46,7 @@ type HxAreaTestJson struct {
 
 // ------------------
 
-// parseTranscript parses the provided transcript and extracts the airspace status
+// Parses the provided transcript to an AirspaceStatus
 func parseAirspaceStates(transcript string) AirspaceStatus {
 	// Default areas
 	areas := []Area{
@@ -57,6 +60,12 @@ func parseAirspaceStates(transcript string) AirspaceStatus {
 	}
 
 	transcript = strings.ToLower(transcript)
+
+	// Correct common twilio transcription mistakes
+	transcript = strings.Replace(transcript, "my ring", "meiringen", -1)
+	transcript = strings.Replace(transcript, "pma", "tma", -1)
+	transcript = strings.Replace(transcript, "be act again", "be active again", -1)
+	transcript = strings.Replace(transcript, "the activated", "deactivated", -1)
 
 	// If true, then transcript is from a time outside flight operating hours
 	// As such, all mentioned sectors are inactive
@@ -75,23 +84,15 @@ func parseAirspaceStates(transcript string) AirspaceStatus {
 	splitCtr := strings.Split(transcript, "ctr")
 	splitActive := strings.Split(splitCtr[ctrSubstringIndex], "active")
 
-	// Debug
-	//fmt.Sprintf("[i] splitCtr (%d): %v\n[i] splitActive (%d): %v\n", len(splitCtr), splitCtr, len(splitActive), splitActive)
-
-	// If contained in the first split segment, then no areas are active
+	// If keyword occurs in the first segment, then no areas will be active
 	hasAreNotActive := strings.Contains(transcript, "are not active")
 
 	everyTmaTargeted := strings.Contains(splitActive[0], "all tma")
 
-	/* DEBUG
-	fmt.Sprintf(
-		"[i] canBeActivated: %t | hasAreNotActive: %t | everyTmaTargeted: %t | hasMultipleCtrSubstrings: %t\n",
-		canBeActivated,
-		hasAreNotActive,
-		everyTmaTargeted,
-		hasMultipleCtrSubstrings,
-	)
-	*/
+	color.Yellow(fmt.Sprintf(
+		"[1] canBeActivated: %v, hasMultipleCtrSubstrings: %v, hasAreNotActive: %v, everyTmaTargeted: %v\n",
+		canBeActivated, hasMultipleCtrSubstrings, hasAreNotActive, everyTmaTargeted,
+	))
 
 	if !canBeActivated && !everyTmaTargeted && !hasAreNotActive {
 		// CTR and specific TMAs are active
@@ -112,22 +113,21 @@ func parseAirspaceStates(transcript string) AirspaceStatus {
 		// Everything is inactive, therefore preserve defaults
 	}
 
-	// Return the parsed data
 	return AirspaceStatus{
 		Areas:      areas,
 		NextUpdate: time.Unix(0, 0),
 	}
 }
 
+// Get the current date but set hours and minutes of an arbitrary timeString
 func parseTimeToCurrentDate(timeString string) (time.Time, error) {
 	parsedTime, err := time.Parse("15:04", timeString)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("error parsing time: %w", err)
 	}
 
-	now := time.Now()
+	now := _refTime //time.Now()
 
-	// Combine the parsed time with the current date in the local timezone
 	finalTime := time.Date(
 		now.Year(), now.Month(), now.Day(),
 		parsedTime.Hour(), parsedTime.Minute(), 0, 0,
@@ -139,7 +139,8 @@ func parseTimeToCurrentDate(timeString string) (time.Time, error) {
 
 // Extract time segments; Next updates and flight operating hours
 func parseTimeSegments(transcript string) []TimeSegment {
-	patternTimeSegments := `\d{1,2}[: ]\d{2}`
+	// \d{3,4} can also falsely match years - will be handled below
+	patternTimeSegments := `\d{1,2}[: ]\d{2}|\d{3,4}`
 
 	// Split all time segments by the "local time" substring.
 	// Segment 1: Message update times,
@@ -153,10 +154,15 @@ func parseTimeSegments(transcript string) []TimeSegment {
 	onlyOneUpdateTime := strings.Contains(transcript, "be active again")
 
 	splitLocalTime := strings.Split(transcript, "local time")
+
+	color.Yellow(fmt.Sprintf(
+		"[2] onlyOneUpdateTime: %v, len(splitLocalTime): %v, splitLocalTime: %v\n",
+		onlyOneUpdateTime, len(splitLocalTime), splitLocalTime,
+	))
 	for i, split := range splitLocalTime {
 		trimmed := strings.TrimSpace(split)
-		if onlyOneUpdateTime && i == 1 {
-			continue
+		if onlyOneUpdateTime && i > 0 {
+			break
 		}
 
 		if regexp.MustCompile(`\d`).MatchString(trimmed) {
@@ -168,9 +174,69 @@ func parseTimeSegments(transcript string) []TimeSegment {
 				continue
 			}
 
+			color.Yellow(fmt.Sprintf(
+				"[2.1] matches: %v\n",
+				matches,
+			))
+
 			var segments []time.Time
 			for _, match := range matches {
-				replacedString := strings.Replace(match[0], " ", ":", 1)
+				isYear := false
+
+				// Prevent years from being interpreted as times
+				// Years will likely be prepended by the string "[of] month"
+				matchYear := regexp.MustCompile(`2\d{1}\d{2}`).FindAllString(match[0], -1)
+				if len(matchYear) > 0 {
+					reg := fmt.Sprintf("(of(\\s)?)?\\w+ %s", matchYear[0])
+					re := regexp.MustCompile(reg)
+					matchYearContext := re.FindAllString(trimmed, -1)
+
+					if len(matchYearContext) > 0 {
+						// Prevent false positive (e.g. "1305 being interpreted as a year")
+						color.Magenta(fmt.Sprintf("[2.2] Comparing: %s vs %d\n", matchYear[0], _thisYear))
+						if y, err := strconv.Atoi(matchYear[0]); err == nil && y >= _thisYear {
+							// If string converts succesfully, then this is absolutely a year
+							// Meiringen will always say "... <month> 2024 ..."
+							_, err := time.Parse("January 2006", matchYearContext[0])
+							isYear = err == nil
+						}
+
+						slog.Debug(
+							"PARSER",
+							"matchYear", matchYear,
+							"matchYearContext", matchYearContext,
+							"isYear", isYear,
+						)
+					}
+				}
+
+				if isYear {
+					continue
+				}
+
+				// Transform 730 -> 7 30 | 1305 -> 13 05
+				// In case of len(s) == 3, this will naively assume that the first digit is the hour
+				var transformedString string = match[0]
+				if !strings.Contains(match[0], ":") && !strings.Contains(match[0], " ") {
+					if len(transformedString) == 3 {
+						transformedString = fmt.Sprintf(
+							"%s %s",
+							string(transformedString[0]),
+							string(transformedString[1:]),
+						)
+
+						color.Blue(fmt.Sprintf("[i] transformedString: %s\n", transformedString))
+					} else if len(transformedString) == 4 {
+						transformedString = fmt.Sprintf(
+							"%s %s",
+							string(transformedString[0:2]),
+							string(transformedString[2:]),
+						)
+						color.Blue(fmt.Sprintf("[i] transformedString: %s\n", transformedString))
+					}
+				}
+
+				replacedString := strings.Replace(transformedString, " ", ":", 1)
 				convertedTime, err := parseTimeToCurrentDate(replacedString)
 				if err != nil {
 					panic(err)
@@ -194,7 +260,7 @@ func parseTimeSegments(transcript string) []TimeSegment {
 		if len(m) == 4 {
 			var parsedDate time.Time
 			var processedDate time.Time
-			slog.Debug("PARSER", "message", "Transcript seems to contain concrete date")
+			slog.Info("PARSER", "action", "parseTimeSegments", "message", "Transcript seems to contain concrete date")
 			parsedDate, err := time.Parse(
 				"2 January 2006",
 				fmt.Sprintf("%s %s %s", m[1], m[2], m[3]),
@@ -211,6 +277,7 @@ func parseTimeSegments(transcript string) []TimeSegment {
 			timeSegments[0][0] = processedDate
 		} else {
 			// ToDo: handle next update time not necessarily being on monday
+			// Haven't seen this in Meiringens transcript yet
 			daysUntilMonday := (int(time.Monday) - int(timeSegments[0][0].Weekday()) + 7) % 7
 			if daysUntilMonday == 0 {
 				daysUntilMonday = 7
@@ -220,18 +287,15 @@ func parseTimeSegments(transcript string) []TimeSegment {
 		}
 	} else {
 		var operatingHours []time.Time
-		for i := range timeSegments {
-			// Skip first timeSegment, the update times
-			if i > 0 {
-				operatingHours = append(operatingHours, timeSegments[i]...)
-			}
+		for i := range timeSegments[1 : len(timeSegments)-1] {
+			operatingHours = append(operatingHours, timeSegments[i]...)
 		}
 
 		rO = append(rO, TimeSegment{Type: "OperatingHours", Times: operatingHours})
 	}
 
 	if len(timeSegments) == 0 {
-		slog.Error("PARSER", "message", "Was unable to detect time segments", "transcript", transcript)
+		slog.Error("PARSER", "action", "parseTimeSegments", "gotTimeSegments", false, "transcript", transcript)
 		return nil
 	}
 
@@ -239,7 +303,10 @@ func parseTimeSegments(transcript string) []TimeSegment {
 	return rO
 }
 
+// Parse a transcript based on a reference time
 func ParseTranscript(transcript string, referenceTime time.Time) AirspaceStatus {
+	slog.Info("PARSER", "event", "startParse", "transcript", transcript, "referenceTime", referenceTime)
+
 	var timeSegments []TimeSegment
 	var airspaceState AirspaceStatus
 
@@ -249,6 +316,7 @@ func ParseTranscript(transcript string, referenceTime time.Time) AirspaceStatus 
 	// Assign time segments
 	var updateTimeTimeSegment TimeSegment
 	var operatingHoursTimeSegment TimeSegment
+	slog.Info("PARSER", "action", "assembleTimeSegments", "timeSegments", timeSegments)
 	for _, segment := range timeSegments {
 		if segment.Type == "UpdateTimes" {
 			updateTimeTimeSegment = segment
@@ -259,7 +327,9 @@ func ParseTranscript(transcript string, referenceTime time.Time) AirspaceStatus 
 
 	nextUpdateTime := time.Time{}
 	for _, segment := range updateTimeTimeSegment.Times {
+		slog.Info("PARSER", "action", "setUpdateTime", "candidateSegment", segment)
 		if referenceTime.Before(segment) {
+			slog.Info("PARSER", "action", "setUpdateTimeFinal", "candidateSegment", segment)
 			nextUpdateTime = segment
 			break
 		}
@@ -268,8 +338,7 @@ func ParseTranscript(transcript string, referenceTime time.Time) AirspaceStatus 
 	airspaceState.NextUpdate = nextUpdateTime
 	airspaceState.OperatingHours = operatingHoursTimeSegment.Times
 
-	o, _ := json.Marshal(airspaceState)
-	color.Yellow(fmt.Sprintf("%v", string(o)))
+	slog.Info("PARSER", "event", "finishParse", "airspaceState", airspaceState)
 
 	return airspaceState
 }
@@ -292,6 +361,8 @@ func main() {
 		fmt.Printf("\n---------------------[%d]---------------------\n", i+1)
 		fmt.Printf("- Transcript: %s\n", hxTestStatus.Transcript)
 		fmt.Printf("- Testing time: %s\n", hxTestStatus.TestingTimeAndDate)
+
+		_refTime = hxTestStatus.TestingTimeAndDate
 
 		airspaceState := ParseTranscript(
 			hxTestStatus.Transcript,
