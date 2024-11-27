@@ -21,7 +21,7 @@ type ActionableNumber struct {
 }
 
 // { "<area>": <num_fails> }
-var _areaFailureCounts map[string]int8
+var _areaFailureCounts map[string]int8 = make(map[string]int8)
 var maxFailsPerArea int8 = 3
 
 // Determines if an area is being processed based on its last_action timestamp and associated, non-completed calls
@@ -70,19 +70,23 @@ func areaIsBeingProcessed(area models.HXArea) (bool, error) {
 		slog.Error("MONITOR",
 			"action", "aggregateHxAreas",
 			"error", err,
-			"areaId", area.ID,
+			"areaName", area.Name,
 			"areaLastAction", area.LastAction,
+			"areaId", area.ID,
 		)
 		return false, err
 	}
 
 	if len(results) == 0 {
-		slog.Error("MONITOR",
+		slog.Warn("MONITOR",
 			"action", "aggregateHxAreas",
-			"error", "Length of aggregation result is 0",
-			"areaId", area.ID,
+			"message", "Length of aggregated result is 0",
+			"areaName", area.Name,
 			"areaLastAction", area.LastAction,
+			"areaId", area.ID,
 		)
+
+		return false, nil
 	}
 
 	hasCompletedCalls := false
@@ -94,18 +98,21 @@ func areaIsBeingProcessed(area models.HXArea) (bool, error) {
 			}
 		}
 	} else {
+		// Either no calls have ever been made, or calls older than LastAction actually did complete
+		hasCompletedCalls = true
 		slog.Warn("MONITOR",
 			"action", "aggregateHxAreas",
-			"message", "Area has had no calls older than referenceTime",
-			"areaId", area.ID,
+			"message", "Area has had no calls newer than referenceTime",
 			"areaName", area.Name,
 			"referenceTime", area.LastAction,
+			"areaId", area.ID,
 		)
 	}
 
 	o, _ := json.Marshal(results)
 	slog.Debug("MONITOR",
 		"action", "aggregateHxAreas",
+		"areaName", area.Name,
 		"hasCompletedCalls", hasCompletedCalls,
 		"resultFromDb", string(o),
 	)
@@ -174,6 +181,7 @@ func MonitorHxAreas() {
 			if !b {
 				if !hxArea.LastActionSuccess {
 					areaFails := incrementAreaFails(hxArea.Name)
+
 					if areaFails >= maxFailsPerArea {
 						slog.Warn("MONITOR",
 							"message", "Have exceeded the max amount of retries for area",
@@ -182,9 +190,8 @@ func MonitorHxAreas() {
 							"maxFails", maxFailsPerArea,
 							"skip", true,
 						)
+						continue
 					}
-
-					continue
 				}
 
 				number, err := db.GetDocument[models.Number]("numbers", bson.M{"name": hxArea.NumberName})
@@ -213,6 +220,12 @@ func MonitorHxAreas() {
 				)
 
 				// Updating the rest of the area is being handled by the callback module
+			} else {
+				slog.Info("MONTOR",
+					"action", "scheduleCall",
+					"skip", true,
+					"areaName", hxArea.Name,
+				)
 			}
 		} else {
 			removeAreaFails(hxArea.Name)
