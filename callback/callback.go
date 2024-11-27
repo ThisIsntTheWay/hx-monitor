@@ -124,11 +124,13 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 		Status: statusCallback.CallStatus,
 	}
 
+	// Fallback timestamp
 	var timeToUse time.Time = time.Now()
 	t, err := time.Parse(time.RFC1123, r.FormValue("Timestamp"))
 	if err != nil {
 		slog.Error("CALLBACK", "action", "parseFormTimestamp", "error", err)
-	} else {
+	} else if !t.Equal(time.Unix(0, 0)) {
+		slog.Info("CALLBACK", "action", "parseFormTimestamp", "parsedTimestamp", t)
 		timeToUse = t
 	}
 
@@ -144,7 +146,6 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if statusCallback.CallStatus == "completed" {
-		insertObj.Time = statusCallback.Timestamp
 		convertedDuration, err := strconv.ParseInt(r.FormValue("Duration"), 10, 8)
 		if err != nil {
 			slog.Error("CALLBACK", "action", "convertCallDuration", "source", r.FormValue("Duration"), "error", err)
@@ -294,16 +295,14 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 			slog.Error("CALLBACK", "action", "mapNumberNameToHxArea", "numberName", number.Name, "error", err)
 		}
 
-		o, _ := json.Marshal(area)
-		fmt.Println(string(o))
-
 		// Update DB
 		transcriptDbObj := models.Transcript{
-			ID:       primitive.NewObjectID(),
-			Date:     transcription.Timestamp,
-			NumberID: number.ID,
-			HXAreaID: area.ID,
-			CallSID:  transcription.CallSid,
+			ID:         primitive.NewObjectID(),
+			Transcript: finalTranscript,
+			Date:       transcription.Timestamp,
+			NumberID:   number.ID,
+			HXAreaID:   area.ID,
+			CallSID:    transcription.CallSid,
 		}
 		err = db.InsertDocument("transcripts", transcriptDbObj)
 		if err != nil {
