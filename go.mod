@@ -1,8 +1,8 @@
 module github.com/thisisnttheway/hx-checker
 
-go 1.22.0
+go 1.23
 
-toolchain go1.22.7
+toolchain go1.23.3
 
 require (
 	github.com/twilio/twilio-go v1.23.2
@@ -11,6 +11,7 @@ require (
 )
 
 require (
+	github.com/ggerganov/whisper.cpp/bindings/go v0.0.0-20241128083307-021eef1000b0 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect

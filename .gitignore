@@ -8,3 +8,6 @@ hx-checker
 # Other
 .env
 **/*utput*.json
+libwhisper.a
+whisper.h
+whisper.cpp
