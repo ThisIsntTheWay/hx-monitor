@@ -48,7 +48,7 @@ type HxAreaTestJson struct {
 
 // Parses the provided transcript to an AirspaceStatus
 func parseAirspaceStates(transcript string) AirspaceStatus {
-	// Default areas
+	// Default areas (Meiringen)
 	areas := []Area{
 		{0, false}, // CTR
 		{1, false}, // TMA x
@@ -61,7 +61,7 @@ func parseAirspaceStates(transcript string) AirspaceStatus {
 
 	transcript = strings.ToLower(transcript)
 
-	// Correct common twilio transcription mistakes
+	// Correct common Twilio/google STT transcription mistakes
 	transcript = strings.Replace(transcript, "my ring", "meiringen", -1)
 	transcript = strings.Replace(transcript, "pma", "tma", -1)
 	transcript = strings.Replace(transcript, "be act again", "be active again", -1)
@@ -80,6 +80,12 @@ func parseAirspaceStates(transcript string) AirspaceStatus {
 		ctrSubstringIndex = 1
 	}
 
+	unspecificTmas := regexp.MustCompile(`\d tma sectors`).FindString(transcript)
+
+	// If true, then an X amount of TMA areas are active ("...<n> TMA sectors...")
+	unspecificTmasMentioned := unspecificTmas != ""
+	color.Magenta("[1] unspecifiedTmas: %v, unspecificTmasMentioned: %v \n", unspecificTmas, unspecificTmasMentioned)
+
 	// First split by CTR, then by keyword "active"
 	splitCtr := strings.Split(transcript, "ctr")
 	splitActive := strings.Split(splitCtr[ctrSubstringIndex], "active")
@@ -89,16 +95,41 @@ func parseAirspaceStates(transcript string) AirspaceStatus {
 
 	everyTmaTargeted := strings.Contains(splitActive[0], "all tma")
 
-	color.Yellow(fmt.Sprintf(
-		"[1] canBeActivated: %v, hasMultipleCtrSubstrings: %v, hasAreNotActive: %v, everyTmaTargeted: %v\n",
-		canBeActivated, hasMultipleCtrSubstrings, hasAreNotActive, everyTmaTargeted,
-	))
-
 	if !canBeActivated && !everyTmaTargeted && !hasAreNotActive {
+		var activeTmas []string
+
 		// CTR and specific TMAs are active
-		activeTmas := regexp.MustCompile(`\d`).FindAllString(splitActive[0], -1)
+		if unspecificTmasMentioned {
+			var amountTmas int = len(areas)
+			a, err := strconv.Atoi(regexp.MustCompile(`\d`).FindString(unspecificTmas))
+			if err != nil {
+				slog.Error("PARSER",
+					"action", "determineUnspecificTMAs",
+					"string", unspecificTmas,
+					"error", err,
+				)
+			} else {
+				amountTmas = a
+			}
+
+			for i := 0; i < amountTmas; i++ {
+				activeTmas = append(activeTmas, strconv.Itoa(i+1))
+			}
+
+			color.Magenta("[1.1] Logic for unspecificTmasMentioned: amountTmas: %v, activeTmas: %v\n", amountTmas, activeTmas)
+		} else {
+			activeTmas = regexp.MustCompile(`\d`).FindAllString(splitActive[0], -1)
+		}
 
 		for i := range activeTmas {
+			if i+1 >= len(areas) {
+				slog.Warn("PARSER",
+					"message", "This parsed active TMA exceeds this areas available TMAs",
+					"index", i, "lengthAreas", len(areas), "parsedActiveTmas", activeTmas,
+				)
+				break
+			}
+
 			areas[i+1].Status = true
 		}
 
@@ -361,6 +392,7 @@ func main() {
 		fmt.Printf("\n---------------------[%d]---------------------\n", i+1)
 		fmt.Printf("- Transcript: %s\n", hxTestStatus.Transcript)
 		fmt.Printf("- Testing time: %s\n", hxTestStatus.TestingTimeAndDate)
+		fmt.Printf("- Additional note: %s\n", hxTestStatus.AdditionalNote)
 
 		_refTime = hxTestStatus.TestingTimeAndDate
 

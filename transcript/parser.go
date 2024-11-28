@@ -28,7 +28,7 @@ func parseAirspaceStates(transcript string) models.AirspaceStatus {
 
 	transcript = strings.ToLower(transcript)
 
-	// Correct common twilio transcription mistakes
+	// Correct common Twilio/google STT transcription mistakes
 	transcript = strings.Replace(transcript, "my ring", "meiringen", -1)
 	transcript = strings.Replace(transcript, "pma", "tma", -1)
 	transcript = strings.Replace(transcript, "be act again", "be active again", -1)
@@ -47,6 +47,11 @@ func parseAirspaceStates(transcript string) models.AirspaceStatus {
 		ctrSubstringIndex = 1
 	}
 
+	unspecificTmas := regexp.MustCompile(`\d tma sectors`).FindString(transcript)
+
+	// If true, then an X amount of TMA areas are active ("...<n> TMA sectors...")
+	unspecificTmasMentioned := unspecificTmas != ""
+
 	// First split by CTR, then by keyword "active"
 	splitCtr := strings.Split(transcript, "ctr")
 	splitActive := strings.Split(splitCtr[ctrSubstringIndex], "active")
@@ -56,11 +61,47 @@ func parseAirspaceStates(transcript string) models.AirspaceStatus {
 
 	everyTmaTargeted := strings.Contains(splitActive[0], "all tma")
 
+	slog.Debug("PARSER",
+		"unspecificTmas", unspecificTmas,
+		"splitCtr", splitCtr,
+		"splitActive", splitActive,
+		"hasAreNotActive", hasAreNotActive,
+		"everyTmaTargeted", everyTmaTargeted,
+	)
+
 	if !canBeActivated && !everyTmaTargeted && !hasAreNotActive {
+		var activeTmas []string
+
 		// CTR and specific TMAs are active
-		activeTmas := regexp.MustCompile(`\d`).FindAllString(splitActive[0], -1)
+		if unspecificTmasMentioned {
+			var amountTmas int = len(areas)
+			a, err := strconv.Atoi(regexp.MustCompile(`\d`).FindString(unspecificTmas))
+			if err != nil {
+				slog.Error("PARSER",
+					"action", "determineUnspecificTMAs",
+					"string", unspecificTmas,
+					"error", err,
+				)
+			} else {
+				amountTmas = a
+			}
+
+			for i := 0; i < amountTmas; i++ {
+				activeTmas = append(activeTmas, string(i+1))
+			}
+		} else {
+			activeTmas = regexp.MustCompile(`\d`).FindAllString(splitActive[0], -1)
+		}
 
 		for i := range activeTmas {
+			if i+1 >= len(areas) {
+				slog.Warn("PARSER",
+					"message", "This parsed active TMA exceeds this areas available TMAs",
+					"index", i, "lengthAreas", len(areas), "parsedActiveTmas", activeTmas,
+				)
+				break
+			}
+
 			areas[i+1].Status = true
 		}
 
@@ -81,7 +122,7 @@ func parseAirspaceStates(transcript string) models.AirspaceStatus {
 	}
 }
 
-// Get the current date but set hours and minutes of an arbitrary timeString
+// Get the current date but set its hours and minutes to that of an arbitrary timeString
 func parseTimeToCurrentDate(timeString string) (time.Time, error) {
 	parsedTime, err := time.Parse("15:04", timeString)
 	if err != nil {
@@ -112,7 +153,6 @@ func parseTimeSegments(transcript string) []models.TimeSegment {
 	var timeSegments [][]time.Time
 
 	// Check if this transcript is for the weekend (only one update time)
-	// Sometimes gets misinterpreted as "be act again"
 	onlyOneUpdateTime := strings.Contains(transcript, "be active again")
 
 	splitLocalTime := strings.Split(transcript, "local time")
@@ -144,7 +184,7 @@ func parseTimeSegments(transcript string) []models.TimeSegment {
 					matchYearContext := re.FindAllString(trimmed, -1)
 
 					if len(matchYearContext) > 0 {
-						// Prevent false positive (e.g. "1305 being interpreted as a year")
+						// Prevent false positive (e.g. "1305" being interpreted as a year)
 						if y, err := strconv.Atoi(matchYear[0]); err == nil && y >= _thisYear {
 							// If string converts succesfully, then this is absolutely a year
 							// Meiringen will always say "... <month> 2024 ..."
