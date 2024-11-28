@@ -22,10 +22,26 @@ type ActionableNumber struct {
 
 // { "<area>": <num_fails> }
 var _areaFailureCounts map[string]int8 = make(map[string]int8)
+
+// { "<area>": <being_processed> }
+var _areaProcessingQueue map[string]bool = make(map[string]bool)
+
 var maxFailsPerArea int8 = 3
 
+func GetAreaProcessingState(areaName string) bool {
+	return _areaProcessingQueue[areaName]
+}
+
+func DeleteAreaFromProcessingQueue(areaName string) {
+	delete(_areaProcessingQueue, areaName)
+}
+
+func setAreaProcessingState(areaName string, state bool) {
+	_areaProcessingQueue[areaName] = state
+}
+
 // Determines if an area is being processed based on its last_action timestamp and associated, non-completed calls
-func areaIsBeingProcessed(area models.HXArea) (bool, error) {
+func areasNumberIsBeingCalled(area models.HXArea) (bool, error) {
 	// based on models.HXArea
 	type AggregateResult struct {
 		AreaID      primitive.ObjectID `bson:"_id"`
@@ -176,8 +192,12 @@ func MonitorHxAreas() {
 		)
 
 		if mustActNow {
-			// Check if this number is not already queued for action
-			b, _ := areaIsBeingProcessed(hxArea)
+			if GetAreaProcessingState(hxArea.Name) {
+				continue
+			}
+
+			// Check if this number is not already being called
+			b, _ := areasNumberIsBeingCalled(hxArea)
 			if !b {
 				if !hxArea.LastActionSuccess {
 					areaFails := incrementAreaFails(hxArea.Name)
@@ -193,6 +213,8 @@ func MonitorHxAreas() {
 						continue
 					}
 				}
+
+				setAreaProcessingState(hxArea.Name, true)
 
 				number, err := db.GetDocument[models.Number]("numbers", bson.M{"name": hxArea.NumberName})
 				if err != nil {
@@ -229,6 +251,7 @@ func MonitorHxAreas() {
 			}
 		} else {
 			removeAreaFails(hxArea.Name)
+			setAreaProcessingState(hxArea.Name, false)
 		}
 	}
 }
