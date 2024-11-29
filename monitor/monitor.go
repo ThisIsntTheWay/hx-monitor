@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/thisisnttheway/hx-checker/caller"
@@ -20,6 +22,13 @@ type ActionableNumber struct {
 	MustActNow bool
 }
 
+type CallConfiguration struct {
+	DoTranscription bool
+	DoRecording     bool
+}
+
+var _callConfiguration CallConfiguration
+
 // { "<area>": <num_fails> }
 var _areaFailureCounts map[string]int8 = make(map[string]int8)
 
@@ -27,6 +36,35 @@ var _areaFailureCounts map[string]int8 = make(map[string]int8)
 var _areaProcessingQueue map[string]bool = make(map[string]bool)
 
 var maxFailsPerArea int8 = 3
+
+func init() {
+	// Looks up and returns an env vars value as bool. Returns s otherwise.
+	var check = func(e string, s bool) bool {
+		env, exists := os.LookupEnv(e)
+		if exists {
+			b, err := strconv.ParseBool(env)
+			if err != nil {
+				return false
+			} else {
+				return b
+			}
+		} else {
+			return s
+		}
+	}
+
+	t := check("USE_TWILIO_TRANSCRIPTION", true)
+	r := check("USE_WHISPER_TRANSCRIPTION", false)
+	if t && r {
+		logger.LogErrorFatal(
+			"MONITOR",
+			"Both USE_TWILIO_TRANSCRIPTION and USE_WHISPER_TRANSCRIPTION are set",
+		)
+	}
+
+	_callConfiguration.DoTranscription = t
+	_callConfiguration.DoRecording = r
+}
 
 func GetAreaProcessingState(areaName string) bool {
 	return _areaProcessingQueue[areaName]
@@ -157,9 +195,13 @@ func removeAreaFails(areaName string) {
 	}
 }
 
-// Call a number and start transcription
-func initCallAndTranscription(number string) caller.CallResponse {
-	call, err := caller.Call(number, true)
+// Call a number and either start transcription or recording
+func initCall(number string) caller.CallResponse {
+	call, err := caller.Call(
+		number,
+		_callConfiguration.DoTranscription,
+		_callConfiguration.DoRecording,
+	)
 	if err != nil {
 		slog.Error("MONITOR",
 			"message", fmt.Sprintf("Failure calling number '%s'", number),
@@ -231,7 +273,7 @@ func MonitorHxAreas() {
 					"numberName", hxArea.NumberName,
 					"number", number[0].Number,
 				)
-				initCallAndTranscription(number[0].Number)
+				initCall(number[0].Number)
 
 				db.UpdateDocument(
 					"hx_areas",

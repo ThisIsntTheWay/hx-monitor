@@ -130,7 +130,7 @@ func createHxSubAreas(airspaceStatus models.AirspaceStatus, referenceArea string
 }
 
 // Removes all interim transcripts with the exception of the very last one
-func sanitizePartialTranscriptions(s []TranscriptionRequest) []TranscriptionRequest {
+func sanitizePartialTranscriptions(s []TranscriptionCallback) []TranscriptionCallback {
 	// Partial transcripts all have the same sequence ID, but different timestamps
 	// As such, we'll have to resort to sorting by timestamps
 	sort.Slice(s, func(i, j int) bool {
@@ -139,7 +139,7 @@ func sanitizePartialTranscriptions(s []TranscriptionRequest) []TranscriptionRequ
 
 	// First, remove all interim entries that do not meet the minimal length
 	const minLength int = 16
-	var intermediateResults []TranscriptionRequest
+	var intermediateResults []TranscriptionCallback
 	for _, entry := range s {
 		entry.IsInterim = entry.TranscriptionData.Confidence == 0
 		if len(entry.TranscriptionData.Transcript) >= minLength || !entry.IsInterim {
@@ -148,8 +148,8 @@ func sanitizePartialTranscriptions(s []TranscriptionRequest) []TranscriptionRequ
 	}
 
 	// Secondly, remove all interim entries but keep track of the last entry
-	var result []TranscriptionRequest
-	var lastInterim *TranscriptionRequest
+	var result []TranscriptionCallback
+	var lastInterim *TranscriptionCallback
 	for _, entry := range intermediateResults {
 		if entry.TranscriptionData.Confidence == 0 {
 			lastInterim = &entry

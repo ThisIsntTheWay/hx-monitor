@@ -82,7 +82,7 @@ func GetNumbers() []models.Number {
 }
 
 // Call a number and optionally start a live transcription
-func Call(number string, startTranscription bool) (CallResponse, error) {
+func Call(number string, startTranscription bool, startRecording bool) (CallResponse, error) {
 	for {
 		if !callback.IsCallbackurlSet() {
 			slog.Warn("CALLER", "message", "Waiting for CallbackUrlDefined", "CallBackUrlDefined", callback.IsCallbackurlSet())
@@ -125,24 +125,40 @@ func Call(number string, startTranscription bool) (CallResponse, error) {
 	params.SetTo(targetNumber)
 	params.SetFrom(twilioCallFrom)
 	params.SetTimeLimit(callLength + 5) // Ensures transcripts can complete
-	params.SetStatusCallback(callback.GetStatusCallbackurl() + "/call")
+	params.SetStatusCallback(callback.GetStatusCallbackurl() + callback.UrlConfigs.Calls)
 	params.SetStatusCallbackEvent([]string{"initiated", "answered", "completed"})
 
+	if startTranscription && startRecording {
+		slog.Warn("CALL", "message", "Both live transcription and call recording are enabled")
+	}
+
+	var additionalMl string
 	if startTranscription {
 		// Apparently you could use twilio-go/twiml/twiml.go instead of assembling a string but idk how
 		transcriptionHints := "$DAY, CTR, TMA, active, inactive"
 
 		additionalParams := fmt.Sprintf("partialResults='%v' track='inbound_track'", callback.UsesPartialTranscriptionResults())
-
-		twiMl := fmt.Sprintf(
-			"<Response><Start><Transcription hints='%s' statusCallbackUrl='%s' %s/></Start><Pause length='%d'/></Response>",
-			transcriptionHints,
-			callback.GetStatusCallbackurl()+"/transcription",
+		additionalMl = fmt.Sprintf(
+			"<Start><Transcription hints='%s' statusCallbackUrl='%s' %s/></Start>",
+			transcriptionHints, callback.GetStatusCallbackurl()+callback.UrlConfigs.Transcriptions,
 			additionalParams,
-			callLength,
 		)
-		params.SetTwiml(twiMl)
 	}
+
+	if startRecording {
+		additionalMl = fmt.Sprintf(
+			"<Record maxLength='%d' playBeep='%v' recordingStatusCallback='%s'/>",
+			callLength, false, callback.GetStatusCallbackurl()+callback.UrlConfigs.Recordings,
+		)
+	}
+
+	slog.Info("CALLER", "action", "addAdditionalMl", "value", additionalMl)
+	twiMl := fmt.Sprintf(
+		"<Response>%s<Pause length='%d'/></Response>",
+		additionalMl,
+		callLength,
+	)
+	params.SetTwiml(twiMl)
 
 	resp, err := client.Api.CreateCall(params)
 	if err != nil {
@@ -236,4 +252,12 @@ func CheckCall(sid string) (CallResponse, error) {
 		slog.Info("CALLER", "action", "fetch", "sid", sid, "response", returnObj)
 		return returnObj, nil
 	}
+}
+
+// Deletes a recording
+func DeleteRecording(sid string) error {
+	client := createTwilioClient()
+	params := &twilioApi.DeleteRecordingParams{}
+
+	return client.Api.DeleteRecording(sid, params)
 }

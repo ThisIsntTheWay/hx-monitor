@@ -10,6 +10,7 @@ import (
 	"slices"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/thisisnttheway/hx-checker/db"
@@ -25,12 +26,25 @@ import (
 var CallbackUrl string
 var UsePartialTranscriptionResults bool
 
-var _transcriptionRequests []TranscriptionRequest
+var _TranscriptionCallbacks []TranscriptionCallback
 var statusCallbacks []StatusCallback
 
 // To prevent mapCallSidToNumber() from failing, at the very least 'initiated' can't be ignored
 var ignoreCallStates = []string{"queued", "ringing", "in-progress"}
 var badCallStates = []string{"busy", "no-answer", "canceled", "failed"}
+
+// URL paths used by handlers
+type UrlConfig struct {
+	Calls          string
+	Transcriptions string
+	Recordings     string
+}
+
+var UrlConfigs UrlConfig = UrlConfig{
+	Calls:          "/calls",
+	Transcriptions: "/transcription",
+	Recordings:     "/recording",
+}
 
 type StatusCallback struct {
 	CallSID        string
@@ -44,7 +58,7 @@ type StatusCallback struct {
 	Timestamp      time.Time // RFC1123
 }
 
-type TranscriptionRequest struct {
+type TranscriptionCallback struct {
 	LanguageCode       string            `json:"LanguageCode"`
 	TranscriptionSid   string            `json:"TranscriptionSid"`
 	PartialResults     bool              `json:"PartialResults"`
@@ -62,6 +76,13 @@ type TranscriptionRequest struct {
 type TranscriptionData struct {
 	Transcript string  `json:"transcript"`
 	Confidence float64 `json:"confidence"`
+}
+
+type RecordingCallback struct {
+	CallSid         string `json:"CallSid"`
+	RecordingSid    string `json:"RecordingSid"`
+	RecordingStatus string `json:"RecordingStatus"`
+	RecordingUrl    string `json:"RecordingUrl"`
 }
 
 func init() {
@@ -89,6 +110,7 @@ func IsCallbackurlSet() bool {
 	return CallbackUrl != ""
 }
 
+// Handler for /call
 func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -196,6 +218,7 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Handler for /transcription
 func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
@@ -210,7 +233,7 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var transcription TranscriptionRequest
+	var transcription TranscriptionCallback
 	transcription.LanguageCode = r.FormValue("LanguageCode")
 	transcription.TranscriptionSid = r.FormValue("TranscriptionSid")
 	transcription.TranscriptionEvent = r.FormValue("TranscriptionEvent")
@@ -250,7 +273,7 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 		transcription.TranscriptionData = transcriptData
 	}
 
-	_transcriptionRequests = append(_transcriptionRequests, transcription)
+	_TranscriptionCallbacks = append(_TranscriptionCallbacks, transcription)
 
 	var logFields []interface{}
 	logFields = append(logFields, "event", transcription.TranscriptionEvent)
@@ -272,7 +295,7 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 
 	if isFinalTranscript {
 		if UsesPartialTranscriptionResults() {
-			_transcriptionRequests = sanitizePartialTranscriptions(_transcriptionRequests)
+			_TranscriptionCallbacks = sanitizePartialTranscriptions(_TranscriptionCallbacks)
 		}
 
 		finalTranscript := handleTranscriptionStopped(transcription)
@@ -329,11 +352,59 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Event received"))
 }
 
+// Handler for /recording
+func handleRecordingsCallback(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check if request has been sent from Tilio
+	twilioSignature := r.Header["X-Twilio-Signature"]
+	//userAgent := r.Header["User-Agent"] // TwilioProxy/1.1
+	if twilioSignature == nil {
+		http.Error(w, "Denied callback", http.StatusForbidden)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	var recording RecordingCallback
+	recording.CallSid = r.FormValue("CallSid")
+	recording.RecordingSid = r.FormValue("RecordingSid")
+	recording.RecordingStatus = r.FormValue("RecordingStatus")
+	recording.RecordingUrl = r.FormValue("RecordingUrl")
+
+	if strings.ToLower(recording.RecordingStatus) == "completed" {
+		filePath, err := DownloadRecording(
+			recording.RecordingSid,
+			recording.RecordingUrl,
+		)
+		if err != nil {
+			slog.Error("CALLBACK",
+				"action", "downloadRecording",
+				"error", err,
+			)
+		} else {
+			slog.Info("CALLBACK",
+				"action", "downloadRecording",
+				"filePath", filePath,
+			)
+		}
+
+		// Transcribe recording with our whisper thing
+		// ToDo: Delete recording
+	}
+}
+
 // Assemble a completed transcription by its individual parts and return it
-func handleTranscriptionStopped(finalTranscription TranscriptionRequest) string {
+func handleTranscriptionStopped(finalTranscription TranscriptionCallback) string {
 	// Filter array for all items whose "callSid" matches the final transcription's callSid and sort
-	var transcriptionContents []TranscriptionRequest
-	for _, request := range _transcriptionRequests {
+	var transcriptionContents []TranscriptionCallback
+	for _, request := range _TranscriptionCallbacks {
 		if request.CallSid == finalTranscription.CallSid {
 			if request.TranscriptionEvent == "transcription-content" {
 				transcriptionContents = append(transcriptionContents, request)
@@ -352,21 +423,22 @@ func handleTranscriptionStopped(finalTranscription TranscriptionRequest) string 
 	}
 
 	// Delete all requests with the same callSid and reassemble array
-	var remainingRequests []TranscriptionRequest
-	for _, request := range _transcriptionRequests {
+	var remainingRequests []TranscriptionCallback
+	for _, request := range _TranscriptionCallbacks {
 		if request.CallSid != finalTranscription.CallSid {
 			remainingRequests = append(remainingRequests, request)
 		}
 	}
-	_transcriptionRequests = remainingRequests
+	_TranscriptionCallbacks = remainingRequests
 
 	return fullTranscription
 }
 
 // Start callback webserver
 func Serve() {
-	http.HandleFunc("/call", handleCallsCallback)
-	http.HandleFunc("/transcription", handleTransciptionsCallback)
+	http.HandleFunc(UrlConfigs.Calls, handleCallsCallback)
+	http.HandleFunc(UrlConfigs.Transcriptions, handleTransciptionsCallback)
+	http.HandleFunc(UrlConfigs.Recordings, handleRecordingsCallback)
 
 	// ngrok automatically uses the env var so no need to pass the actual value anywhere
 	_, exists := os.LookupEnv("NGROK_AUTHTOKEN")

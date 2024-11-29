@@ -13,40 +13,32 @@ export TWILIO_ACCOUNT_SID=
 export TWILIO_API_KEY=
 export TWILIO_API_SECRET=
 
-# Optional, shown are defaults
+# Program configuration
+USE_TWILIO_TRANSCRIPTION=1  # bool, if set to true will instruct Twilio to transcribe with their STT
+USE_WHISPER_TRANSCRIPTION=0 # bool, if set to true will use local whisper to transcribe
+                            # Doing so will download recordings off Twilio
+                            # Only one method of transcription may be used!
+
 TWILIO_PARTIAL_TRANSCRIPTIONS=0 # bool, if set to true will instruct Twilio to send partial transcriptions
-                                # Useful for scenarios where Twilio will only send a single transcribed sentence
-                                # Will quickly result HTTP 429 errors when using ngrok!
+                                # Useful for scenarios where Twilio would only send a single transcribed sentence
+                                # Will quickly result in HTTP 429 errors when using ngrok!
+WHISPER_MODEL=tiny.en           # Whisper model to use
 
 TWILIO_CALL_LENGTH=30 # In seconds
                       # English transcripts may take up to 38 seconds, e.g. Meiringen
 
-TWILIO_CALLBACK_URL="" # Publicly accessible URL of this programs callback server.
+TWILIO_CALLBACK_URL="" # Publicly accessible (base) URL under which the callback server will be hosted
                        # If unset, will use ngrok to generate a callback URL
-NGROK_AUTHTOKEN=""     # If TWILIO_CALLBACK_URL is unset, this must be set - see above
+NGROK_AUTHTOKEN=""     # If TWILIO_CALLBACK_URL is unset, this must be set
 ```
 
 ## Test
 ```bash
 mkdir ./mongodb-test
+
+# Set either
 export NGROK_AUTHTOKEN=abc
-
-# Generate ngrok callback service BEFORE app is started
-NGROK_CONTAINER_ID=$(docker ps -aq -f name=ngrok)
-SYSTEM_IP=$(ip addr show eth0 | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
-CALLBACK_SERVER_PORT=8080 #2343
-if [ $(echo $NGROK_CONTAINER_ID | wc -l) -eq 0 ]; then
-  docker run --name ngrok --net=host -d -e NGROK_AUTHTOKEN=$NGROK_AUTHTOKEN ngrok/ngrok:latest http http://$SYSTEM_IP:$CALLBACK_SERVER_PORT --log=stdout
-else
-  # Restart if stopped
-  if [ $(docker ps -a -f name=ngrok | awk 'NR>1' | grep Exit | wc -l) -eq 1 ]; then
-    docker start ngrok
-  fi
-fi
-
-# Get ngrok URL
-export TWILIO_CALLBACK_URL=$(docker logs ngrok | grep "url=" | cut -d "=" -f 8)
-echo "TWILIO_CALLBACK_URL: $TWILIO_CALLBACK_URL"
+export TWILIO_CALLBACK_URL=abc
 
 # Local mongodb
 docker run -d \
@@ -71,4 +63,7 @@ export TWILIO_REGION=ie1
 export TWILIO_ACCOUNT_SID=abc
 export TWILIO_API_KEY=def
 export TWILIO_API_SECRET=ghi
+
+export USE_TWILIO_TRANSCRIPTION=0
+export USE_WHISPER_TRANSCRIPTION=1
 ```
