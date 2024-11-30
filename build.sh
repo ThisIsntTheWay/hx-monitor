@@ -24,17 +24,12 @@ if [ ! -f "libwhisper.a" ]; then
     make whisper
 
     cd $LAST_DIR
-
-    # Extract relevant files
-    cp $CLONE_DIR/libwhisper.a .
-    cp $CLONE_DIR/include/whisper.h .
-
     echo "> Done building whisper"
 fi
 
 # -------------------------------
 # Build binary
-export C_INCLUDE_PATH
-export LIBRARY_PATH
+export C_INCLUDE_PATH="$CLONE_DIR/include"
+export LIBRARY_PATH="$CLONE_DIR/"
 
-#go build .
+go build .
