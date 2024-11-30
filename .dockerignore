@@ -1,0 +1,14 @@
+# Cloned whisper.cpp repo
+whisper.cpp
+
+# Other stuff
+.git
+*.log
+*.md
+*.txt
+*test*
+recordings
+
+# Binaries, bootstrap scripts
+hx-checker
+seed-database.sh
