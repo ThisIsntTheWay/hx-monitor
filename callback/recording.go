@@ -9,24 +9,8 @@ import (
 	"path/filepath"
 
 	"github.com/thisisnttheway/hx-checker/caller"
+	c "github.com/thisisnttheway/hx-checker/configuration"
 )
-
-type TwilioAuthDetails struct {
-	AccountSid string
-	AuthToken  string
-	ApiKey     string
-	ApiSecret  string
-}
-
-// Get env vars related to Twilio authentication details
-func getTwilioAuthDetails() TwilioAuthDetails {
-	return TwilioAuthDetails{
-		AccountSid: os.Getenv("TWILIO_ACCOUNT_SID"),
-		AuthToken:  os.Getenv("TWILIO_AUTH_TOKEN"),
-		ApiKey:     os.Getenv("TWILIO_API_KEY"),
-		ApiSecret:  os.Getenv("TWILIO_API_SECRET"),
-	}
-}
 
 // Downloads a recording and returns the absolute file path of the saved recording
 func DownloadRecording(sid string, url string) (string, error) {
@@ -39,7 +23,7 @@ func DownloadRecording(sid string, url string) (string, error) {
 	)
 
 	req, _ := http.NewRequest("GET", url+format, nil)
-	twilioAuthDetails := getTwilioAuthDetails()
+	twilioAuthDetails := c.GetTwilioConfig().AuthConfig
 	if twilioAuthDetails.AuthToken != "" {
 		req.SetBasicAuth(
 			twilioAuthDetails.AccountSid,

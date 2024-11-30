@@ -3,7 +3,6 @@ package caller
 import (
 	"fmt"
 	"log/slog"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -32,35 +31,19 @@ type CallResponse struct {
 // Construct Twilio API client
 func createTwilioClient() *twilio.RestClient {
 	var twilioClientParams twilio.ClientParams
-	accountSid := os.Getenv("TWILIO_ACCOUNT_SID")
-	if accountSid == "" {
-		logger.LogErrorFatal("CALLER", "Environment variable TWILIO_ACCOUNT_SID is unset")
-	}
 
-	authToken, exists := os.LookupEnv("TWILIO_AUTH_TOKEN")
-	slog.Info("CALLER", "usingAuthToken", exists)
-	if exists {
+	usesAuthToken := c.GetTwilioConfig().AuthConfig.AuthToken != ""
+	slog.Info("CALLER", "usingAuthToken", usesAuthToken)
+	if usesAuthToken {
 		twilioClientParams = twilio.ClientParams{
-			Username: accountSid,
-			Password: authToken,
+			Username: c.GetTwilioConfig().AuthConfig.AccountSid,
+			Password: c.GetTwilioConfig().AuthConfig.AuthToken,
 		}
 	} else {
-		apiKey := os.Getenv("TWILIO_API_KEY")
-		apiSecret := os.Getenv("TWILIO_API_SECRET")
-
-		if apiKey == "" || apiSecret == "" {
-			logger.LogErrorFatal("CALLER", "Twilio API credentials are (partly) missing in environment variables")
-		} else {
-			fmt.Printf(
-				"Using the following credentials:\naccountSid: %s\napiKey: %s\napiSecret: %s\n",
-				accountSid, apiKey, apiSecret,
-			)
-		}
-
 		twilioClientParams = twilio.ClientParams{
-			Username:   apiKey,
-			Password:   apiSecret,
-			AccountSid: accountSid,
+			Username:   c.GetTwilioConfig().AuthConfig.ApiKey,
+			Password:   c.GetTwilioConfig().AuthConfig.ApiSecret,
+			AccountSid: c.GetTwilioConfig().AuthConfig.AccountSid,
 		}
 	}
 
@@ -92,29 +75,7 @@ func Call(number string, startTranscription bool, startRecording bool) (CallResp
 		}
 	}
 
-	var callLength int
-	var defaultCallLength int = 38
-	s, exists := os.LookupEnv("TWILIO_CALL_LENGTH")
-	if exists {
-		c, err := strconv.Atoi(s)
-		if err != nil {
-			slog.Error("CALLER", "message", "Failed converting TWILIO_CALL_LENGTH to int", "error", err)
-			callLength = defaultCallLength
-		} else {
-			callLength = c
-		}
-	} else {
-		callLength = defaultCallLength
-	}
-
-	slog.Info("CALLER", "callLength", callLength, "envVarIsSet", exists, "usingDefaultValue", callLength == defaultCallLength)
-
 	client := createTwilioClient()
-
-	twilioCallFrom := os.Getenv("TWILIO_CALL_FROM")
-	if twilioCallFrom == "" {
-		logger.LogErrorFatal("CALLER", "TWILIO_CALL_FROM not set")
-	}
 
 	var targetNumber string = number
 	if !strings.HasPrefix(number, "+41") {
@@ -123,8 +84,8 @@ func Call(number string, startTranscription bool, startRecording bool) (CallResp
 
 	params := &twilioApi.CreateCallParams{}
 	params.SetTo(targetNumber)
-	params.SetFrom(twilioCallFrom)
-	params.SetTimeLimit(callLength + 5) // Ensures transcripts can complete
+	params.SetFrom(c.GetTwilioConfig().CallFrom)
+	params.SetTimeLimit(c.GetTwilioConfig().CallLength + 5) // Ensures transcripts can complete
 	params.SetStatusCallback(c.GetCallbackUrl() + c.UrlConfigs.Calls)
 	params.SetStatusCallbackEvent([]string{"initiated", "answered", "completed"})
 
@@ -148,7 +109,7 @@ func Call(number string, startTranscription bool, startRecording bool) (CallResp
 	if startRecording {
 		additionalMl = fmt.Sprintf(
 			"<Record maxLength='%d' playBeep='%v' recordingStatusCallback='%s'/>",
-			callLength, false, c.GetCallbackUrl()+c.UrlConfigs.Recordings,
+			c.GetTwilioConfig().CallLength, false, c.GetCallbackUrl()+c.UrlConfigs.Recordings,
 		)
 	}
 
@@ -156,7 +117,7 @@ func Call(number string, startTranscription bool, startRecording bool) (CallResp
 	twiMl := fmt.Sprintf(
 		"<Response>%s<Pause length='%d'/></Response>",
 		additionalMl,
-		callLength,
+		c.GetTwilioConfig().CallLength,
 	)
 	params.SetTwiml(twiMl)
 
