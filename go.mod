@@ -12,6 +12,9 @@ require (
 
 require (
 	github.com/ggerganov/whisper.cpp/bindings/go v0.0.0-20241128083307-021eef1000b0 // indirect
+	github.com/go-audio/audio v1.0.0 // indirect
+	github.com/go-audio/riff v1.0.0 // indirect
+	github.com/go-audio/wav v1.1.0 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
