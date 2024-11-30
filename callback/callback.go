@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	c "github.com/thisisnttheway/hx-checker/configuration"
 	"github.com/thisisnttheway/hx-checker/db"
 	"github.com/thisisnttheway/hx-checker/logger"
 	"github.com/thisisnttheway/hx-checker/models"
@@ -23,28 +24,12 @@ import (
 	"golang.ngrok.com/ngrok/config"
 )
 
-var CallbackUrl string
-var UsePartialTranscriptionResults bool
-
 var _TranscriptionCallbacks []TranscriptionCallback
 var statusCallbacks []StatusCallback
 
 // To prevent mapCallSidToNumber() from failing, at the very least 'initiated' can't be ignored
 var ignoreCallStates = []string{"queued", "ringing", "in-progress"}
 var badCallStates = []string{"busy", "no-answer", "canceled", "failed"}
-
-// URL paths used by handlers
-type UrlConfig struct {
-	Calls          string
-	Transcriptions string
-	Recordings     string
-}
-
-var UrlConfigs UrlConfig = UrlConfig{
-	Calls:          "/calls",
-	Transcriptions: "/transcription",
-	Recordings:     "/recording",
-}
 
 type StatusCallback struct {
 	CallSID        string
@@ -88,26 +73,18 @@ type RecordingCallback struct {
 func init() {
 	v, exists := os.LookupEnv("TWILIO_PARTIAL_TRANSCRIPTIONS")
 	if exists {
-		var err error
-		UsePartialTranscriptionResults, err = strconv.ParseBool(v)
+		var result bool
+		v, err := strconv.ParseBool(v)
 		if err != nil {
 			slog.Error("CALLBACK", "message", "Was unable to parse env var 'TWILIO_PARTIAL_TRANSCRIPTIONS'", "error", err)
+		} else {
+			result = v
 		}
+
+		c.SetPartialTranscriptionResultBool(result)
 	}
 
-	slog.Info("CALLBACK", "event", "init", "usePartialTranscriptionResults", UsePartialTranscriptionResults)
-}
-
-func UsesPartialTranscriptionResults() bool {
-	return UsePartialTranscriptionResults
-}
-
-func GetStatusCallbackurl() string {
-	return CallbackUrl
-}
-
-func IsCallbackurlSet() bool {
-	return CallbackUrl != ""
+	slog.Info("CALLBACK", "event", "init", "usePartialTranscriptionResults", c.UsesPartialTranscriptionResults())
 }
 
 // Handler for /call
@@ -264,7 +241,7 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 				Very often, Twilio will return one completely transcribed sentence, but then never provide another complete transcription.
 				Instead of a complete sentence, a "transcription-stop" event gets sent.
 			*/
-			if UsesPartialTranscriptionResults() {
+			if c.UsesPartialTranscriptionResults() {
 				isInterim := transcriptData.Confidence == 0
 				transcription.IsInterim = isInterim
 			}
@@ -294,7 +271,7 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isFinalTranscript {
-		if UsesPartialTranscriptionResults() {
+		if c.UsesPartialTranscriptionResults() {
 			_TranscriptionCallbacks = sanitizePartialTranscriptions(_TranscriptionCallbacks)
 		}
 
@@ -436,9 +413,9 @@ func handleTranscriptionStopped(finalTranscription TranscriptionCallback) string
 
 // Start callback webserver
 func Serve() {
-	http.HandleFunc(UrlConfigs.Calls, handleCallsCallback)
-	http.HandleFunc(UrlConfigs.Transcriptions, handleTransciptionsCallback)
-	http.HandleFunc(UrlConfigs.Recordings, handleRecordingsCallback)
+	http.HandleFunc(c.UrlConfigs.Calls, handleCallsCallback)
+	http.HandleFunc(c.UrlConfigs.Transcriptions, handleTransciptionsCallback)
+	http.HandleFunc(c.UrlConfigs.Recordings, handleRecordingsCallback)
 
 	// ngrok automatically uses the env var so no need to pass the actual value anywhere
 	_, exists := os.LookupEnv("NGROK_AUTHTOKEN")
@@ -454,20 +431,21 @@ func Serve() {
 		}
 
 		// Set ngrok tunnel URL as CallbackUrl
-		CallbackUrl = listener.URL()
-		slog.Info("CALLBACK", "callbackUrl", CallbackUrl)
+		c.SetCallbackUrl(listener.URL())
+		slog.Info("CALLBACK", "callbackUrl", c.CallbackUrl)
 		if err := http.Serve(listener, nil); err != nil {
 			logger.LogErrorFatal("CALLBACK", err.Error())
 		}
 	} else {
-		CallbackUrl, exists = os.LookupEnv("TWILIO_API_CALLBACK_URL")
+		customCallbackUrl, exists := os.LookupEnv("TWILIO_API_CALLBACK_URL")
 		if !exists {
 			logger.LogErrorFatal("CALLBACK", "Must set TWILIO_API_CALLBACK_URL or use ngrok")
 		} else {
-			slog.Info("CALLBACK", "callbackUrlSource", "envVar", "value", CallbackUrl)
+			c.SetCallbackUrl(customCallbackUrl)
+			slog.Info("CALLBACK", "callbackUrlSource", "envVar", "value", c.CallbackUrl)
 		}
 
-		slog.Info("CALLBACK", "callbackUrl", CallbackUrl)
+		slog.Info("CALLBACK", "callbackUrl", c.CallbackUrl)
 		if err := http.ListenAndServe(":8080", nil); err != nil {
 			logger.LogErrorFatal("CALLBACK", err.Error())
 		}

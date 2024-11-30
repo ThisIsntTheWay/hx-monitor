@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/thisisnttheway/hx-checker/caller"
 )
 
 type TwilioAuthDetails struct {
@@ -73,13 +75,13 @@ func DownloadRecording(sid string, url string) (string, error) {
 		return "", err
 	}
 
-	//err = caller.DeleteRecording(sid)
-	//if err != nil {
-	//	slog.Warn("CALL",
-	//		"action", "deleteRecording",
-	//		"error", err,
-	//	)
-	//}
+	err = caller.DeleteRecording(sid)
+	if err != nil {
+		slog.Warn("CALL",
+			"action", "deleteRecording",
+			"error", err,
+		)
+	}
 
 	return filePath, nil
 }
