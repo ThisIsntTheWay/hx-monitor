@@ -11,7 +11,7 @@ if [ ! -f "libwhisper.a" ]; then
     CLONE_DIR="whisper.cpp"
     BINDINGS_GO_DIR="bindings/go"
     WHISPER_TARGET_TAG="v1.7.2"
-    LAST_DIR=$(pwd)
+    BASE_DIR=$(pwd)
 
     if [ ! -d "$CLONE_DIR" ]; then
         git clone "$REPO_URL" "$CLONE_DIR"
@@ -23,13 +23,15 @@ if [ ! -f "libwhisper.a" ]; then
     cd "$BINDINGS_GO_DIR"
     make whisper
 
-    cd $LAST_DIR
+    cd $BASE_DIR
     echo "> Done building whisper"
 fi
 
 # -------------------------------
 # Build binary
-export C_INCLUDE_PATH="$CLONE_DIR/include"
-export LIBRARY_PATH="$CLONE_DIR/"
+export C_INCLUDE_PATH="$BASE_DIR/$CLONE_DIR/include:$BASE_DIR/$CLONE_DIR/ggml/include"
+export LIBRARY_PATH="$BASE_DIR/$CLONE_DIR/"
 
+echo "> Building binary..."
 go build .
+echo "> Done building binary"
