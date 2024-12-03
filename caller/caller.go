@@ -33,7 +33,7 @@ func createTwilioClient() *twilio.RestClient {
 	var twilioClientParams twilio.ClientParams
 
 	usesAuthToken := c.GetTwilioConfig().AuthConfig.AuthToken != ""
-	slog.Info("CALLER", "usingAuthToken", usesAuthToken)
+	slog.Debug("CALLER", "action", "createClient", "usingAuthToken", usesAuthToken)
 	if usesAuthToken {
 		twilioClientParams = twilio.ClientParams{
 			Username: c.GetTwilioConfig().AuthConfig.AccountSid,
@@ -90,7 +90,7 @@ func Call(number string, startTranscription bool, startRecording bool) (CallResp
 	params.SetStatusCallbackEvent([]string{"initiated", "answered", "completed"})
 
 	if startTranscription && startRecording {
-		slog.Warn("CALL", "message", "Both live transcription and call recording are enabled")
+		slog.Warn("CALLER", "message", "Both live transcription and call recording are enabled")
 	}
 
 	var additionalMl string

@@ -15,7 +15,7 @@ import (
 func DownloadRecording(sid string, url string) (string, error) {
 	const format string = ".mp3"
 	recordingFileName := sid + format
-	slog.Info("CALL",
+	slog.Info("CALLBACK",
 		"action", "downloadRecording",
 		"url", url,
 		"format", format,

@@ -339,7 +339,7 @@ func handleRecordingsCallback(w http.ResponseWriter, r *http.Request) {
 
 		err = caller.DeleteRecording(recording.RecordingSid)
 		if err != nil {
-			slog.Warn("CALL",
+			slog.Warn("CALLER",
 				"action", "deleteRecording",
 				"error", err,
 			)
