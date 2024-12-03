@@ -5,10 +5,13 @@ import (
 	"log/slog"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/thisisnttheway/hx-checker/db"
 	"github.com/thisisnttheway/hx-checker/models"
+	"github.com/thisisnttheway/hx-checker/transcript"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -164,4 +167,50 @@ func sanitizePartialTranscriptions(s []TranscriptionCallback) []TranscriptionCal
 	}
 
 	return result
+}
+
+// Updates an HX area in DB based on parsed transcript data
+func UpdateHxAreaInDatabase(finalTranscript string, callSid string, timestamp time.Time) error {
+	// Update HX area
+	// 1. Get CallSid -> Get Number -> Get HXArea
+	// 2. Get HXAreas -> Update them
+	// 2. Update hx_areas and hx_sub_areas in DB
+	number, err := mapCallSidToNumber(callSid)
+	if err != nil {
+		slog.Error("CALLBACK", "action", "mapCallSidToNumber", "callSid", callSid, "error", err)
+	}
+
+	area, err := mapNumberNameToHxArea(number.Name)
+	if err != nil {
+		slog.Error("CALLBACK", "action", "mapNumberNameToHxArea", "numberName", number.Name, "error", err)
+	}
+
+	// Update DB
+	transcriptDbObj := models.Transcript{
+		ID:         primitive.NewObjectID(),
+		Transcript: finalTranscript,
+		Date:       timestamp,
+		NumberID:   number.ID,
+		HXAreaID:   area.ID,
+		CallSID:    callSid,
+	}
+	err = db.InsertDocument("transcripts", transcriptDbObj)
+	if err != nil {
+		slog.Error("CALLBACK", "action", "insertTranscriptIntoDatabase", "error", err)
+	}
+
+	airspaceStatus := transcript.ParseTranscript(finalTranscript, timestamp)
+	slog.Debug("CALLBACK", "event", "generatedAirspaceStatus", "airspaceStatus", airspaceStatus)
+
+	area.NextAction = airspaceStatus.NextUpdate
+	area.SubAreas = createHxSubAreas(airspaceStatus, area.Name)
+	area.LastActionSuccess = true
+
+	err = db.UpdateDocument(
+		"hx_areas",
+		bson.D{{"_id", area.ID}},
+		bson.D{{"$set", area}},
+	)
+
+	return err
 }

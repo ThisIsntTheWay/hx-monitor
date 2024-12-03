@@ -13,12 +13,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/thisisnttheway/hx-checker/caller"
 	c "github.com/thisisnttheway/hx-checker/configuration"
 	"github.com/thisisnttheway/hx-checker/db"
 	"github.com/thisisnttheway/hx-checker/logger"
 	"github.com/thisisnttheway/hx-checker/models"
 	"github.com/thisisnttheway/hx-checker/transcript"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.ngrok.com/ngrok"
 	"golang.ngrok.com/ngrok/config"
@@ -278,48 +278,13 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 		finalTranscript := handleTranscriptionStopped(transcription)
 		logFields = append(logFields, "finalTranscript", finalTranscript)
 
-		airspaceStatus := transcript.ParseTranscript(finalTranscript, time.Now())
-		slog.Debug("CALLBACK", "event", "generatedAirspaceStatus", "airspaceStatus", airspaceStatus)
-
-		// Update HX area
-		// 1. Get CallSid -> Get Number -> Get HXArea
-		// 2. Get HXAreas -> Update them
-		// 2. Update hx_areas and hx_sub_areas in DB
-		number, err := mapCallSidToNumber(transcription.CallSid)
-		if err != nil {
-			slog.Error("CALLBACK", "action", "mapCallSidToNumber", "callSid", transcription.CallSid, "error", err)
-		}
-
-		area, err := mapNumberNameToHxArea(number.Name)
-		if err != nil {
-			slog.Error("CALLBACK", "action", "mapNumberNameToHxArea", "numberName", number.Name, "error", err)
-		}
-
-		// Update DB
-		transcriptDbObj := models.Transcript{
-			ID:         primitive.NewObjectID(),
-			Transcript: finalTranscript,
-			Date:       transcription.Timestamp,
-			NumberID:   number.ID,
-			HXAreaID:   area.ID,
-			CallSID:    transcription.CallSid,
-		}
-		err = db.InsertDocument("transcripts", transcriptDbObj)
-		if err != nil {
-			slog.Error("CALLBACK", "action", "insertTranscriptIntoDatabase", "error", err)
-		}
-
-		area.NextAction = airspaceStatus.NextUpdate
-		area.SubAreas = createHxSubAreas(airspaceStatus, area.Name)
-		area.LastActionSuccess = true
-
-		err = db.UpdateDocument(
-			"hx_areas",
-			bson.D{{"_id", area.ID}},
-			bson.D{{"$set", area}},
+		err := UpdateHxAreaInDatabase(
+			finalTranscript,
+			transcription.CallSid,
+			transcription.Timestamp,
 		)
 		if err != nil {
-			slog.Error("CALLBACK", "action", "updateHxAreasInDatabase", "error", err)
+			slog.Error("CALLBACK", "event", "updateHxAreaInDatabase", "error", err)
 		}
 	}
 
@@ -367,13 +332,33 @@ func handleRecordingsCallback(w http.ResponseWriter, r *http.Request) {
 			)
 		} else {
 			slog.Info("CALLBACK",
-				"action", "downloadRecording",
+				"event", "downloadRecordingComplete",
 				"filePath", filePath,
 			)
 		}
 
-		// Transcribe recording with our whisper thing
-		// ToDo: Delete recording
+		err = caller.DeleteRecording(recording.RecordingSid)
+		if err != nil {
+			slog.Warn("CALL",
+				"action", "deleteRecording",
+				"error", err,
+			)
+		}
+
+		// Transcribe recording with whisper
+		finalTranscript, err := transcript.Transcribe(filePath)
+		if err != nil {
+			logger.LogErrorFatal("CALLBACK", fmt.Sprintf("Failed to transcribe recording: %v", err))
+		}
+
+		err = UpdateHxAreaInDatabase(
+			finalTranscript,
+			recording.CallSid,
+			time.Now(),
+		)
+		if err != nil {
+			logger.LogErrorFatal("CALLBACK", fmt.Sprintf("Failed UpdateHxAreaInDatabase: %v", err))
+		}
 	}
 }
 

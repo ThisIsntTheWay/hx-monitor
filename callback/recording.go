@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/thisisnttheway/hx-checker/caller"
 	c "github.com/thisisnttheway/hx-checker/configuration"
 )
 
@@ -57,14 +56,6 @@ func DownloadRecording(sid string, url string) (string, error) {
 	_, err = io.Copy(file, resp.Body)
 	if err != nil {
 		return "", err
-	}
-
-	err = caller.DeleteRecording(sid)
-	if err != nil {
-		slog.Warn("CALL",
-			"action", "deleteRecording",
-			"error", err,
-		)
 	}
 
 	return filePath, nil
