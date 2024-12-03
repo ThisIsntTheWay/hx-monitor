@@ -12,3 +12,4 @@ libwhisper.a
 whisper.h
 whisper.cpp
 recordings
+models
