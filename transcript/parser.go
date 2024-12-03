@@ -28,11 +28,17 @@ func parseAirspaceStates(transcript string) models.AirspaceStatus {
 
 	transcript = strings.ToLower(transcript)
 
-	// Correct common Twilio/google STT transcription mistakes
+	// Correct common STT transcription mistakes
 	transcript = strings.Replace(transcript, "my ring", "meiringen", -1)
 	transcript = strings.Replace(transcript, "pma", "tma", -1)
 	transcript = strings.Replace(transcript, "be act again", "be active again", -1)
 	transcript = strings.Replace(transcript, "the activated", "deactivated", -1)
+
+	// "4" misinterpreted as ".../or ..." | "... or ..."
+	misinterpretedFour := regexp.MustCompile(`( |\/)or `).FindString(transcript)
+	if misinterpretedFour != "" {
+		transcript = strings.Replace(transcript, misinterpretedFour, " 4 ", 1)
+	}
 
 	// If true, then transcript is from a time outside flight operating hours
 	// As such, all mentioned sectors are inactive

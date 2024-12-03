@@ -17,12 +17,15 @@ export TWILIO_API_SECRET=
 USE_TWILIO_TRANSCRIPTION=1  # bool, if set to true will instruct Twilio to transcribe with their STT
 USE_WHISPER_TRANSCRIPTION=0 # bool, if set to true will use local whisper to transcribe
                             # Doing so will download recordings off Twilio
-                            # Only one method of transcription may be used!
+                            # Only one method of transcription may be used!                            
 
 TWILIO_PARTIAL_TRANSCRIPTIONS=0 # bool, if set to true will instruct Twilio to send partial transcriptions
                                 # Useful for scenarios where Twilio would only send a single transcribed sentence
                                 # Will quickly result in HTTP 429 errors when using ngrok!
-WHISPER_MODEL=tiny.en           # Whisper model to use
+
+WHISPER_MODEL=tiny.en       # Whisper model to use
+WHISPER_DO_MODEL_DOWNLOAD=1 # If WHISPER_MODEL was not found in ./models, attempt download from HuggingFace
+                            # Only supports models hosted in repository 'ggerganov/whisper.cpp'
 
 TWILIO_CALL_LENGTH=30 # In seconds
                       # English transcripts may take up to 38 seconds, e.g. Meiringen
