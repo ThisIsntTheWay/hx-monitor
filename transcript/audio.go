@@ -2,7 +2,6 @@ package transcript
 
 import (
 	"bytes"
-	"fmt"
 	"log/slog"
 	"os/exec"
 	"regexp"
@@ -71,7 +70,6 @@ func convertTo16kHz(filePath string) (string, error) {
 
 // Converts a recording into an expected format, if applicable. Returns absolute file path of guaranteed compatible sample.
 func ensureRecordingIsCompatible(filePath string) (string, error) {
-	fmt.Printf("[i] Ensuring file compatibility: %s\n", filePath)
 	var expectedSampleRate int = 16000
 	returnFilePath := filePath
 

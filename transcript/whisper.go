@@ -114,7 +114,6 @@ func Transcribe(filePath string) (string, error) {
 	}
 
 	// Decode WAV file as we'll need it as a float32
-	fmt.Printf("[i] Will open file: %s\n", compatibleFilepath)
 	file, err := os.Open(compatibleFilepath)
 	if err != nil {
 		return "", err
