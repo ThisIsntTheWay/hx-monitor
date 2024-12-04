@@ -8,7 +8,7 @@ whisper.cpp
 *.txt
 *test*
 recordings
-models
+whisper_models
 
 # Binaries, bootstrap scripts
 hx-checker

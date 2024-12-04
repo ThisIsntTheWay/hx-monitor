@@ -20,7 +20,7 @@ import (
 // File path of whisper model
 var _whisperModel string
 
-const whisperModelsFilePath = "./models"
+const whisperModelsFilePath = "./models_whisper"
 
 func init() {
 	for _, program := range []string{"ffmpeg", "ffprobe"} {
@@ -39,6 +39,14 @@ func init() {
 }
 
 func downloadModelFromHuggingFace(model string) error {
+	_, err := os.Stat(whisperModelsFilePath)
+	if os.IsNotExist(err) {
+		err := os.MkdirAll(whisperModelsFilePath, os.ModePerm)
+		if err != nil {
+			logger.LogErrorFatal("WHISPER", fmt.Sprintf("Could not create folder: %v", err))
+		}
+	}
+
 	outputFilePath := filepath.Join(whisperModelsFilePath, model)
 	url := fmt.Sprintf("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-%s?download=true", model)
 	slog.Info("WHISPER", "action", "downloadModelFromHuggingFace", "model", model, "url", url)
