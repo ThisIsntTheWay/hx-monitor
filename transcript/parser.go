@@ -149,7 +149,7 @@ func parseTimeToCurrentDate(timeString string) (time.Time, error) {
 // Extract time segments; Next updates and flight operating hours
 func parseTimeSegments(transcript string) []models.TimeSegment {
 	// \d{3,4} can also falsely match years - will be handled below
-	patternTimeSegments := `\d{1,2}[: ]\d{2}|\d{3,4}`
+	patternTimeSegments := `\d{1,2}[:. ]\d{2}|\d{3,4}`
 
 	// Split all time segments by the "local time" substring.
 	// Segment 1: Message update times,
