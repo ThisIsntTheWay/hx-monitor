@@ -85,8 +85,9 @@ func ensureRecordingIsCompatible(filePath string) (string, error) {
 				"filePath", filePath,
 				"error", err,
 			)
+
+			return "", err
 		}
-		return "", err
 	}
 
 	sampleRate, err := checkSampleRate(returnFilePath)
