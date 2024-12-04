@@ -34,11 +34,17 @@ func parseAirspaceStates(transcript string) models.AirspaceStatus {
 	transcript = strings.Replace(transcript, "be act again", "be active again", -1)
 	transcript = strings.Replace(transcript, "the activated", "deactivated", -1)
 
+	transcript = strings.Replace(transcript, "r axes", "activated", -1)
+	transcript = strings.Replace(transcript, "trir axis", "activated", -1)
+	transcript = strings.Replace(transcript, "trir-axis", "activated", -1)
+
 	// "4" misinterpreted as ".../or ..." | "... or ..."
 	misinterpretedFour := regexp.MustCompile(`( |\/)or `).FindString(transcript)
 	if misinterpretedFour != "" {
 		transcript = strings.Replace(transcript, misinterpretedFour, " 4 ", 1)
 	}
+
+	slog.Debug("PARSER", "postProcessedTranscript", transcript)
 
 	// If true, then transcript is from a time outside flight operating hours
 	// As such, all mentioned sectors are inactive
@@ -281,8 +287,8 @@ func parseTimeSegments(transcript string) []models.TimeSegment {
 		}
 	} else {
 		var operatingHours []time.Time
-		for i := range timeSegments[1 : len(timeSegments)-1] {
-			operatingHours = append(operatingHours, timeSegments[i]...)
+		for i := range timeSegments[1:len(timeSegments)] {
+			operatingHours = append(operatingHours, timeSegments[i+1]...)
 		}
 
 		rO = append(rO, models.TimeSegment{Type: "OperatingHours", Times: operatingHours})
