@@ -25,6 +25,7 @@ type HXArea struct {
 	LastActionSuccess bool               `bson:"last_action_success"`
 	SubAreas          []HXSubArea        `bson:"sub_areas"`
 	NumberName        string             `bson:"number_name"`
+	LastError         string             `bson:"last_error"`
 }
 
 type HXSubArea struct {

@@ -166,7 +166,7 @@ func handleCallsCallback(w http.ResponseWriter, r *http.Request) {
 			slog.Error("CALLBACK", "action", action, "error", err)
 		}
 
-		err = setBadHxStatus(h.Name)
+		err = setBadHxStatus(h.Name, err.Error())
 		if err != nil {
 			slog.Error("CALLBACK", "action", action, "error", err)
 		} else {

@@ -73,7 +73,7 @@ func mapNumberNameToHxArea(numberName string) (models.HXArea, error) {
 }
 
 // Sets an HX area to be bad, i.e. all sub areas being false and last action success being false
-func setBadHxStatus(referenceArea string) error {
+func setBadHxStatus(referenceArea string, errorReason string) error {
 	referenceAreaObj, err := db.GetDocument[models.HXArea]("hx_areas", bson.M{"name": referenceArea})
 	if err != nil {
 		return err
@@ -90,6 +90,7 @@ func setBadHxStatus(referenceArea string) error {
 
 	referenceAreaObj[0].SubAreas = subAreas
 	referenceAreaObj[0].LastActionSuccess = false
+	referenceAreaObj[0].LastError = errorReason
 
 	err = db.UpdateDocument(
 		"hx_areas",
@@ -199,12 +200,18 @@ func UpdateHxAreaInDatabase(finalTranscript string, callSid string, timestamp ti
 		slog.Error("CALLBACK", "action", "insertTranscriptIntoDatabase", "error", err)
 	}
 
-	airspaceStatus := transcript.ParseTranscript(finalTranscript, timestamp)
+	airspaceStatus, err := transcript.ParseTranscript(finalTranscript, timestamp)
 	slog.Debug("CALLBACK", "event", "generatedAirspaceStatus", "airspaceStatus", airspaceStatus)
+
+	success, lastError := true, ""
+	if err != nil {
+		success, lastError = false, err.Error()
+	}
 
 	area.NextAction = airspaceStatus.NextUpdate
 	area.SubAreas = createHxSubAreas(airspaceStatus, area.Name)
-	area.LastActionSuccess = true
+	area.LastActionSuccess = success
+	area.LastError = lastError
 
 	err = db.UpdateDocument(
 		"hx_areas",

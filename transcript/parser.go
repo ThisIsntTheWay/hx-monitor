@@ -298,7 +298,7 @@ func parseTimeSegments(transcript string) []models.TimeSegment {
 }
 
 // Parse a transcript based on a reference time
-func ParseTranscript(transcript string, referenceTime time.Time) models.AirspaceStatus {
+func ParseTranscript(transcript string, referenceTime time.Time) (models.AirspaceStatus, error) {
 	slog.Info("PARSER", "event", "startParse", "transcript", transcript, "referenceTime", referenceTime)
 
 	var timeSegments []models.TimeSegment
@@ -334,5 +334,10 @@ func ParseTranscript(transcript string, referenceTime time.Time) models.Airspace
 
 	slog.Info("PARSER", "event", "finishParse", "airspaceState", airspaceState)
 
-	return airspaceState
+	if nextUpdateTime.Equal(time.Unix(0, 0)) {
+		return airspaceState, fmt.Errorf("Was unable to parse NextUpdate")
+	} else {
+		return airspaceState, nil
+	}
+
 }
