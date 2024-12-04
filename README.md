@@ -16,7 +16,7 @@ export TWILIO_API_SECRET=
 # Program configuration
 USE_TWILIO_TRANSCRIPTION=1  # bool, if set to true will instruct Twilio to transcribe with their STT
 USE_WHISPER_TRANSCRIPTION=0 # bool, if set to true will use local whisper to transcribe
-                            # Doing so will download recordings off Twilio
+                            # Enabling this will both make and download recordings off Twilio
                             # Only one method of transcription may be used!                            
 
 TWILIO_PARTIAL_TRANSCRIPTIONS=0 # bool, if set to true will instruct Twilio to send partial transcriptions
