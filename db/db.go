@@ -15,6 +15,10 @@ import (
 var client *mongo.Client
 var contextTimeout time.Duration = 6 * time.Second
 
+func init() {
+	c.SetUpMongoConfig()
+}
+
 func Connect() *mongo.Client {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -22,7 +26,7 @@ func Connect() *mongo.Client {
 	var err error
 	client, err = mongo.Connect(ctx, options.Client().ApplyURI(c.GetMongoConfig().Uri))
 	if err != nil {
-		logger.LogErrorFatal("DB", "MongoDB connection details are missing in environment variables")
+		logger.LogErrorFatal("DB", fmt.Sprintf("Error while connecting: %v", err.Error()))
 	}
 
 	slog.Info("DB", "action", "connect", "success", true)

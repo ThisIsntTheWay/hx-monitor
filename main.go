@@ -74,7 +74,6 @@ func init() {
 func main() {
 	// Set up config
 	slog.Info("MAIN", "message", "Setting up configuration...")
-	configuration.SetUpMongoConfig()
 	configuration.SetUpTwilioConfig()
 
 	slog.Info("MAIN", "message", "Attempting to get numbers...")
