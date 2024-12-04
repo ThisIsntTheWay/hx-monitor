@@ -7,10 +7,15 @@ import (
 	"os"
 
 	"github.com/thisisnttheway/hx-checker/configuration"
+	"github.com/thisisnttheway/hx-checker/db"
 	"github.com/thisisnttheway/hx-checker/logger"
 )
 
 const defaultPort string = "8080"
+
+func init() {
+	db.Connect()
+}
 
 func main() {
 	configuration.SetUpMongoConfig()
