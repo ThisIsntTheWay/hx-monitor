@@ -18,3 +18,4 @@ models
 # Frontend
 frontend/files
 node_modules/
+shv*.json
