@@ -53,71 +53,32 @@ type TwilioAuth struct {
 	ApiSecret  string
 }
 
-var TwilioConfig TwilioConfiguration
+var twilioConfig TwilioConfiguration
 
 func UsesPartialTranscriptionResults() bool {
-	return TwilioConfig.UsePartialTranscriptionResults
+	return twilioConfig.UsePartialTranscriptionResults
 }
 
 func SetPartialTranscriptionResultBool(value bool) {
-	TwilioConfig.UsePartialTranscriptionResults = value
+	twilioConfig.UsePartialTranscriptionResults = value
 }
 
 func GetTwilioConfig() TwilioConfiguration {
-	return TwilioConfig
+	return twilioConfig
 }
 
-// --------------------------
-// DATABASE
-type MongoConfiguration struct {
-	Database string
-	Username string
-	Password string
-	Host     string
-	Port     string
-	Uri      string
-}
-
-var MongoConfig MongoConfiguration
-
-// Set up MongoDB configuration
-func SetUpMongoConfig() {
-	MongoConfig.Database = getEnv("MONGODB_DATABASE", "hx")
-	MongoConfig.Username = getEnv("MONGO_USER", "")
-	MongoConfig.Password = getEnv("MONGO_PASSWORD", "")
-	MongoConfig.Host = getEnv("MONGO_HOST", "")
-	MongoConfig.Port = getEnv("MONGO_PORT", "")
-
-	if MongoConfig.Host == "" || MongoConfig.Port == "" {
-		logger.LogErrorFatal("DB", "MongoDB connection details are missing in environment variables")
-	}
-	if MongoConfig.Username == "" || MongoConfig.Password == "" {
-		logger.LogErrorFatal("DB", "MongoDB connection credentials are missing in environment variables")
-	}
-
-	MongoConfig.Uri = fmt.Sprintf(
-		"mongodb://%s:%s@%s:%s",
-		MongoConfig.Username,
-		MongoConfig.Password,
-		MongoConfig.Host,
-		MongoConfig.Port,
-	)
-}
-
-// =================================
-// Set up Twilio configuration
 func SetUpTwilioConfig() {
 	accountSid := os.Getenv("TWILIO_ACCOUNT_SID")
 	if accountSid == "" {
 		logger.LogErrorFatal("CONFIG", "Environment variable TWILIO_ACCOUNT_SID is unset")
 	}
 
-	TwilioConfig.AuthConfig.AccountSid = accountSid
-	TwilioConfig.AuthConfig.AuthToken = os.Getenv("TWILIO_AUTH_TOKEN")
-	TwilioConfig.AuthConfig.ApiKey = os.Getenv("TWILIO_API_KEY")
-	TwilioConfig.AuthConfig.ApiSecret = os.Getenv("TWILIO_API_SECRET")
+	twilioConfig.AuthConfig.AccountSid = accountSid
+	twilioConfig.AuthConfig.AuthToken = os.Getenv("TWILIO_AUTH_TOKEN")
+	twilioConfig.AuthConfig.ApiKey = os.Getenv("TWILIO_API_KEY")
+	twilioConfig.AuthConfig.ApiSecret = os.Getenv("TWILIO_API_SECRET")
 
-	if TwilioConfig.AuthConfig.ApiKey == "" || TwilioConfig.AuthConfig.ApiSecret == "" {
+	if twilioConfig.AuthConfig.ApiKey == "" || twilioConfig.AuthConfig.ApiSecret == "" {
 		logger.LogErrorFatal("CONFIG", "Twilio API credentials are (partly) missing in environment variables")
 	}
 
@@ -137,14 +98,54 @@ func SetUpTwilioConfig() {
 	}
 
 	slog.Info("CONFIG", "callLength", callLength, "envVarIsSet", exists, "usingDefaultValue", callLength == defaultCallLength)
-	TwilioConfig.CallLength = callLength
+	twilioConfig.CallLength = callLength
 
 	value := os.Getenv("TWILIO_CALL_FROM")
 	if value == "" {
 		logger.LogErrorFatal("CALLER", "TWILIO_CALL_FROM not set")
 	}
-	TwilioConfig.CallFrom = value
+	twilioConfig.CallFrom = value
+}
 
+// --------------------------
+// DATABASE
+type MongoConfiguration struct {
+	Database string
+	Username string
+	Password string
+	Host     string
+	Port     string
+	Uri      string
+}
+
+var mongoConfig MongoConfiguration
+
+func GetMongoConfig() MongoConfiguration {
+	return mongoConfig
+}
+
+// Set up MongoDB configuration
+func SetUpMongoConfig() {
+	mongoConfig.Database = getEnv("MONGODB_DATABASE", "hx")
+	mongoConfig.Username = getEnv("MONGO_USER", "")
+	mongoConfig.Password = getEnv("MONGO_PASSWORD", "")
+	mongoConfig.Host = getEnv("MONGO_HOST", "")
+	mongoConfig.Port = getEnv("MONGO_PORT", "")
+
+	if mongoConfig.Host == "" || mongoConfig.Port == "" {
+		logger.LogErrorFatal("DB", "MongoDB connection details are missing in environment variables")
+	}
+	if mongoConfig.Username == "" || mongoConfig.Password == "" {
+		logger.LogErrorFatal("DB", "MongoDB connection credentials are missing in environment variables")
+	}
+
+	mongoConfig.Uri = fmt.Sprintf(
+		"mongodb://%s:%s@%s:%s",
+		mongoConfig.Username,
+		mongoConfig.Password,
+		mongoConfig.Host,
+		mongoConfig.Port,
+	)
 }
 
 // =================================

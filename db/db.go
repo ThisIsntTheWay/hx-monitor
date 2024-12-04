@@ -20,7 +20,7 @@ func Connect() *mongo.Client {
 	defer cancel()
 
 	var err error
-	client, err = mongo.Connect(ctx, options.Client().ApplyURI(c.MongoConfig.Uri))
+	client, err = mongo.Connect(ctx, options.Client().ApplyURI(c.GetMongoConfig().Uri))
 	if err != nil {
 		logger.LogErrorFatal("DB", "MongoDB connection details are missing in environment variables")
 	}
@@ -34,7 +34,7 @@ func InsertDocument(colName string, document interface{}) error {
 	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel()
 
-	collection := client.Database(c.MongoConfig.Database).Collection(colName)
+	collection := client.Database(c.GetMongoConfig().Database).Collection(colName)
 	_, err := collection.InsertOne(ctx, document)
 	if err != nil {
 		slog.Error("DB", "error", fmt.Sprintf("Failed to insert document: %v", err))
@@ -50,7 +50,7 @@ func InsertDocuments(colName string, documents []interface{}) error {
 	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel()
 
-	collection := client.Database(c.MongoConfig.Database).Collection(colName)
+	collection := client.Database(c.GetMongoConfig().Database).Collection(colName)
 	_, err := collection.InsertMany(ctx, documents)
 	if err != nil {
 		slog.Error("DB", "error", fmt.Sprintf("Failed to insert documents: %v", err))
@@ -66,7 +66,7 @@ func UpdateDocument(colName string, filter interface{}, update interface{}) erro
 	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel()
 
-	collection := client.Database(c.MongoConfig.Database).Collection(colName)
+	collection := client.Database(c.GetMongoConfig().Database).Collection(colName)
 	_, err := collection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		slog.Error("DB", "error", fmt.Sprintf("Failed to update document: %v", err))
@@ -83,7 +83,7 @@ func Aggregate[T any](colName string, pipeline mongo.Pipeline) ([]T, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel()
 
-	collection := client.Database(c.MongoConfig.Database).Collection(colName)
+	collection := client.Database(c.GetMongoConfig().Database).Collection(colName)
 	cursor, err := collection.Aggregate(ctx, pipeline)
 	if err != nil {
 		slog.Error("DB", "error", fmt.Sprintf("Error querying document: %v", err.Error()))
@@ -104,7 +104,7 @@ func GetDocument[T any](colName string, filter interface{}) ([]T, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel()
 
-	collection := client.Database(c.MongoConfig.Database).Collection(colName)
+	collection := client.Database(c.GetMongoConfig().Database).Collection(colName)
 	cursor, err := collection.Find(ctx, filter)
 	if err != nil {
 		slog.Error("DB", "error", fmt.Sprintf("Error querying document: %v", err.Error()))
