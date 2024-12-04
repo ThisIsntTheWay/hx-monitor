@@ -54,8 +54,8 @@ func init() {
 	}
 
 	t := check("USE_TWILIO_TRANSCRIPTION", true)
-	r := check("USE_WHISPER_TRANSCRIPTION", false)
-	if t && r {
+	w := check("USE_WHISPER_TRANSCRIPTION", false)
+	if t && w {
 		logger.LogErrorFatal(
 			"MONITOR",
 			"Both USE_TWILIO_TRANSCRIPTION and USE_WHISPER_TRANSCRIPTION are set",
@@ -63,7 +63,7 @@ func init() {
 	}
 
 	_callConfiguration.DoTranscription = t
-	_callConfiguration.DoRecording = r
+	_callConfiguration.DoRecording = w
 }
 
 func GetAreaProcessingState(areaName string) bool {
