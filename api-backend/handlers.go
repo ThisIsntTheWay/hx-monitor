@@ -24,6 +24,33 @@ func logResponse(r *http.Request) {
 	)
 }
 
+// Get all areas
+func getAreas(w http.ResponseWriter, r *http.Request) {
+	logResponse(r)
+
+	hxAreas, err := db.GetDocument[models.HXArea](
+		"hx_areas",
+		bson.M{},
+	)
+
+	var s interface{}
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		s = ResponseError{
+			Error: "Internal error",
+			Data:  err.Error(),
+		}
+	} else {
+		s = ResponseOk{
+			Message: "Ok",
+			Data:    hxAreas,
+		}
+	}
+
+	res, _ := json.Marshal(s)
+	fmt.Fprint(w, string(res))
+}
+
 // Get area by name (/areas/{name})
 func getAreaByName(w http.ResponseWriter, r *http.Request) {
 	logResponse(r)

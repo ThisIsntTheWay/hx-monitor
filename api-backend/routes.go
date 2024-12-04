@@ -32,6 +32,7 @@ var muxRouter *mux.Router = mux.NewRouter()
 func init() {
 	// HX areas
 	muxRouter.HandleFunc(apiBase+"areas/{name}", getAreaByName).Methods("GET")
+	muxRouter.HandleFunc(apiBase+"areas", getAreas).Methods("GET")
 
 	// Transcripts
 	muxRouter.HandleFunc(apiBase+"transcripts/{name:[^/]+}/latest", getTranscriptsLatest).Methods("GET")
