@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"strconv"
@@ -67,16 +68,45 @@ func GetTwilioConfig() TwilioConfiguration {
 }
 
 // --------------------------
-// WHISPER
-var WhisperModel string
+// DATABASE
+type MongoConfiguration struct {
+	Database string
+	Username string
+	Password string
+	Host     string
+	Port     string
+	Uri      string
+}
 
-func GetWhisperModel() string {
-	return WhisperModel
+var MongoConfig MongoConfiguration
+
+// Set up MongoDB configuration
+func SetUpMongoConfig() {
+	MongoConfig.Database = getEnv("MONGODB_DATABASE", "hx")
+	MongoConfig.Username = getEnv("MONGO_USER", "")
+	MongoConfig.Password = getEnv("MONGO_PASSWORD", "")
+	MongoConfig.Host = getEnv("MONGO_HOST", "")
+	MongoConfig.Port = getEnv("MONGO_PORT", "")
+
+	if MongoConfig.Host == "" || MongoConfig.Port == "" {
+		logger.LogErrorFatal("DB", "MongoDB connection details are missing in environment variables")
+	}
+	if MongoConfig.Username == "" || MongoConfig.Password == "" {
+		logger.LogErrorFatal("DB", "MongoDB connection credentials are missing in environment variables")
+	}
+
+	MongoConfig.Uri = fmt.Sprintf(
+		"mongodb://%s:%s@%s:%s",
+		MongoConfig.Username,
+		MongoConfig.Password,
+		MongoConfig.Host,
+		MongoConfig.Port,
+	)
 }
 
 // =================================
 // Set up Twilio configuration
-func setUpTwilioConfig() {
+func SetUpTwilioConfig() {
 	accountSid := os.Getenv("TWILIO_ACCOUNT_SID")
 	if accountSid == "" {
 		logger.LogErrorFatal("CONFIG", "Environment variable TWILIO_ACCOUNT_SID is unset")
@@ -117,6 +147,13 @@ func setUpTwilioConfig() {
 
 }
 
-func init() {
-	setUpTwilioConfig()
+// =================================
+// Get environment variable with a default value
+func getEnv(key string, defaultValue string) string {
+	val, ok := os.LookupEnv(key)
+	if ok {
+		return val
+	} else {
+		return defaultValue
+	}
 }

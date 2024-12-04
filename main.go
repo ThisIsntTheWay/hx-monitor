@@ -7,6 +7,7 @@ import (
 
 	"github.com/thisisnttheway/hx-checker/callback"
 	"github.com/thisisnttheway/hx-checker/caller"
+	"github.com/thisisnttheway/hx-checker/configuration"
 	"github.com/thisisnttheway/hx-checker/db"
 	"github.com/thisisnttheway/hx-checker/logger"
 	"github.com/thisisnttheway/hx-checker/monitor"
@@ -71,6 +72,11 @@ func init() {
 }
 
 func main() {
+	// Set up config
+	slog.Info("MAIN", "message", "Setting up configuration...")
+	configuration.SetUpMongoConfig()
+	configuration.SetUpTwilioConfig()
+
 	slog.Info("MAIN", "message", "Attempting to get numbers...")
 	numbers := caller.GetNumbers()
 	for _, v := range numbers {
