@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/thisisnttheway/hx-checker/db"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -29,7 +28,6 @@ type transcriptAggregation struct {
 const apiBase string = "/api/v1/"
 
 var muxRouter *mux.Router = mux.NewRouter()
-var dbClient *mongo.Client = db.Connect()
 
 func init() {
 	// HX areas
