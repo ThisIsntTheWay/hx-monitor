@@ -5,10 +5,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 airspaces_json_url = "https://airspace.shv-fsvl.ch/api/v1/geojson/airspaces"
-airspaces_json = Path("./files/shv_airspaces.json")
-airspaces_json_processed = Path("./files/shv_airspace_processed.json")
+airspaces_json = Path("./public/shv_airspaces.json")
+airspaces_json_processed = Path("./public/shv_airspaces_processed.json")
 relevant_areas = ["meiringen"]
-
 
 def download_airspaces_json(force=False):
     if not airspaces_json.is_file() or force:
