@@ -9,6 +9,7 @@ whisper.cpp
 *test*
 recordings
 whisper_models
+frontend
 
 # Binaries, bootstrap scripts
 hx-checker

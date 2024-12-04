@@ -14,3 +14,7 @@ whisper.h
 whisper.cpp
 recordings
 models
+
+# Frontend
+frontend/files
+node_modules/
