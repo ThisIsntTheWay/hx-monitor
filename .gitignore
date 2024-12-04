@@ -4,6 +4,7 @@ run*.log
 
 # Builds
 hx-checker
+hx-checker-api
 
 # Other
 .env

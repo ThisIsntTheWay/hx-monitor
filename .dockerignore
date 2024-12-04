@@ -12,4 +12,5 @@ models
 
 # Binaries, bootstrap scripts
 hx-checker
+hx-checker-api
 seed-database.sh
