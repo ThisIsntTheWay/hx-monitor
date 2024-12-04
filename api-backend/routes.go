@@ -74,7 +74,7 @@ func init() {
 			w.WriteHeader(http.StatusInternalServerError)
 			s = ResponseError{
 				Error: "Internal error",
-				Data:  err,
+				Data:  err.Error(),
 			}
 		} else {
 			s = ResponseOk{
