@@ -13,7 +13,7 @@ libwhisper.a
 whisper.h
 whisper.cpp
 recordings
-models
+models_whisper/
 
 # Frontend
 frontend/files
