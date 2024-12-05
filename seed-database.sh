@@ -25,37 +25,37 @@ db.hx_areas.insertMany([
         number_name: "meiringen",
         sub_areas: [
             {
-                full_name: "Meiringen CTR",
+                full_name: "CTR Meiringen HX",
                 name: "meiringen-ctr",
                 status: false
             },
             {
-                full_name: "Meiringen TMA 1",
+                full_name: "TMA Meiringen 1 HX",
                 name: "meiringen-tma-1",
                 status: false
             },
             {
-                full_name: "Meiringen TMA 2",
+                full_name: "TMA Meiringen 2 HX",
                 name: "meiringen-tma-2",
                 status: false
             },
             {
-                full_name: "Meiringen TMA 3",
+                full_name: "TMA Meiringen 3 HX",
                 name: "meiringen-tma-3",
                 status: false
             },
             {
-                full_name: "Meiringen TMA 4",
+                full_name: "TMA Meiringen 4 HX",
                 name: "meiringen-tma-4",
                 status: false
             },
             {
-                full_name: "Meiringen TMA 5",
+                full_name: "TMA Meiringen 5 HX",
                 name: "meiringen-tma-5",
                 status: false
             },
             {
-                full_name: "Meiringen TMA 6",
+                full_name: "TMA Meiringen 6 HX",
                 name: "meiringen-tma-6",
                 status: false
             }
