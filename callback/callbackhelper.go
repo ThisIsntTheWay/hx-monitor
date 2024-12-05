@@ -114,12 +114,16 @@ func createHxSubAreas(airspaceStatus models.AirspaceStatus, referenceArea string
 			areaType = "CTR"
 		}
 
+		// Assemble name based on GeoJSON format for object names: <Type> <Area> [Index] HX
+		// Examples: TMA Meiringen 1 HX/CTR Meiringen HX
+
 		// Capitalizes first letter (i.e. "meiringen" -> "Meiringen")
 		adjustedRefArea := cases.Title(language.English, cases.NoLower).String(referenceArea)
-		fullName := fmt.Sprintf("%s %s", adjustedRefArea, areaType)
+		fullName := fmt.Sprintf("%s %s", areaType, adjustedRefArea)
 		if area.Index > 0 {
 			fullName = fmt.Sprintf("%s %d", fullName, area.Index)
 		}
+		fullName = fullName + " HX"
 
 		name := strings.Replace(strings.ToLower(fullName), " ", "-", -1)
 

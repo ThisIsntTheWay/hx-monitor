@@ -345,5 +345,4 @@ func ParseTranscript(transcript string, referenceTime time.Time) (models.Airspac
 	} else {
 		return airspaceState, nil
 	}
-
 }
