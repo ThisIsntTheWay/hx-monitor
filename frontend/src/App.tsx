@@ -13,20 +13,17 @@ const App: React.FC = () => {
   const [apiData, setApiData] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isFetching, setFetching] = useState<boolean>(false);
-  const [fade, setFade] = useState(false);
   
   const doApiFetch = () => {
-    console.info("FETCHING API...")
-
+    const endpoint = '/api/v1/areas'
+    console.info("Fetching API ("+endpoint+")...");
+    setError(null)
     setFetching(true)
-    fetchApiData('/api/v1/areas')
+
+    fetchApiData(endpoint)
       .then(setApiData)
-      .catch((err) => setError(err.message));
-    setFetching(false)
-    
-    if (apiData) {
-      setFade(false)
-    }
+      .catch((err) => setError(err.message))
+      .finally(() => setFetching(false));
   }
 
   // Fetch GeoJSON data
@@ -43,44 +40,49 @@ const App: React.FC = () => {
   return (
     <div className="App">
       {(!apiData || error) && <div className="gray-overlay"></div>}
-      <div className={`center-box ${fade ? 'fade-out' : ''}`}>
-        {!apiData ? (
-          !error && <p>Fetching from API ⏰</p>
-        ) : (
-          <pre>{JSON.stringify(apiData, null, 0)}</pre>
-        )}
 
-        {/* ToDo: If retrying, show the "Fetching from..." thing again */}
-        {!isFetching && error && (
+      <div className={`center-box ${apiData ? 'fade-out' : ''} ${error ? 'error-box' : ''}`}>
+        <h3>
           <div>
-            <p>Error fetching API: <span style={{ color: 'red' }}>{error}</span></p>
-            <button onClick={doApiFetch}>Retry</button>
+            <h1>
+              {!apiData && !error && (<span className="clock-spinner"></span>)}
+              {error && "❌"}
+            </h1>
+            <p>
+              {!apiData && !error && "Fetching airspace status..."}
+              {error && (<div>API unreachable: <b>{error}</b></div>)}
+            </p>
+            <p>
+              {!isFetching && <button className="button" onClick={doApiFetch}>⟳</button>}
+            </p>
           </div>
-        )}
+        </h3>
       </div>
       
-      <MapContainer center={INTERLAKEN_COORDS} zoom={13} style={{ height: '100vh', width: '100%' }}>
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        
-        {/* Render GeoJSON data */}
-        {apiData && geoJsonData && (
-          <GeoJSON
-            data={geoJsonData}
-            style={(feature) => ({
-              color: GetStylingForFeature(feature, apiData).Color,
-              weight: 3,
-              opacity: GetStylingForFeature(feature, apiData).Opacity,
-            })}
-            onEachFeature={(feature, layer) => {
-              if (feature.properties) {
-                layer.bindPopup(
-                  `<strong>${feature.properties.Name || 'Unnamed Feature'}</strong>`
-                );
-              }
-            }}
-          />
-        )}
-      </MapContainer>
+      <div className={`${!apiData || isFetching ? 'grayscale' : ''}`}>
+        <MapContainer center={INTERLAKEN_COORDS} zoom={13} style={{ height: '100vh', width: '100%' }}>
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          
+          {/* Render GeoJSON data */}
+          {apiData && geoJsonData && (
+            <GeoJSON
+              data={geoJsonData}
+              style={(feature) => ({
+                color: GetStylingForFeature(feature, apiData).Color,
+                weight: 3,
+                opacity: GetStylingForFeature(feature, apiData).Opacity,
+              })}
+              onEachFeature={(feature, layer) => {
+                if (feature.properties) {
+                  layer.bindPopup(
+                    `<strong>${feature.properties.Name || 'Unnamed Feature'}</strong>`
+                  );
+                }
+              }}
+            />
+          )}
+        </MapContainer>
+        </div>
     </div>
   );
 }
