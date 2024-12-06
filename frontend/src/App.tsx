@@ -61,7 +61,7 @@ const App: React.FC = () => {
       
       <div className={`${!apiData || isFetching ? 'grayscale' : ''}`}>
         <MapContainer center={INTERLAKEN_COORDS} zoom={13} style={{ height: '100vh', width: '100%' }}>
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' />
           
           {/* Render GeoJSON data */}
           {apiData && geoJsonData && (
