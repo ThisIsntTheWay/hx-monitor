@@ -19,3 +19,7 @@ models_whisper/
 frontend/files
 node_modules/
 shv*.json
+
+# Whisper models
+*.bin
+*.en*
