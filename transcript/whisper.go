@@ -31,11 +31,18 @@ func init() {
 		}
 	}
 
-	whisperModel, exists := os.LookupEnv("WHISPER_MODEL")
-	if !exists {
-		logger.LogErrorFatal("WHISPER", "WHISPER_MODEL is unset")
+	b, err := strconv.ParseBool(os.Getenv("USE_WHISPER_TRANSCRIPTION"))
+	if err != nil {
+		b = false
 	}
-	_whisperModel, _ = getWhisperModel(whisperModel)
+
+	if b {
+		whisperModel, exists := os.LookupEnv("WHISPER_MODEL")
+		if !exists {
+			logger.LogErrorFatal("WHISPER", "WHISPER_MODEL is unset")
+		}
+		_whisperModel, _ = getWhisperModel(whisperModel)
+	}
 }
 
 func downloadModelFromHuggingFace(model string) error {
