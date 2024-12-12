@@ -84,7 +84,7 @@ func init() {
 		c.SetPartialTranscriptionResultBool(result)
 	}
 
-	slog.Info("CALLBACK", "event", "init", "usePartialTranscriptionResults", c.UsesPartialTranscriptionResults())
+	slog.Info("CALLBACK", "event", "init", "TWILIO_PARTIAL_TRANSCRIPTIONS", c.UsesPartialTranscriptionResults())
 }
 
 // Handler for /call

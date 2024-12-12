@@ -235,6 +235,7 @@ func MonitorHxAreas() {
 
 		if mustActNow {
 			if GetAreaProcessingState(hxArea.Name) {
+				slog.Info("MONITOR_DEBUG", "event", "skipAreaDueToProcessingState", "area", hxArea.Name)
 				continue
 			}
 
