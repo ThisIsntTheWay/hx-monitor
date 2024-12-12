@@ -204,10 +204,9 @@ func UpdateHxAreaInDatabase(finalTranscript string, callSid string, timestamp ti
 		slog.Error("CALLBACK", "action", "insertTranscriptIntoDatabase", "error", err)
 	}
 
+	success, lastError := true, ""
 	airspaceStatus, err := transcript.ParseTranscript(finalTranscript, timestamp)
 	slog.Debug("CALLBACK", "event", "generatedAirspaceStatus", "airspaceStatus", airspaceStatus)
-
-	success, lastError := true, ""
 	if err != nil {
 		success, lastError = false, err.Error()
 	}
@@ -215,6 +214,7 @@ func UpdateHxAreaInDatabase(finalTranscript string, callSid string, timestamp ti
 	area.NextAction = airspaceStatus.NextUpdate
 	area.FlightOperatingHours = airspaceStatus.OperatingHours
 	area.SubAreas = createHxSubAreas(airspaceStatus, area.Name)
+
 	area.LastActionSuccess = success
 	area.LastError = lastError
 
