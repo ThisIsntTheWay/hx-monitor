@@ -45,7 +45,7 @@ func InsertDocument(colName string, document interface{}) error {
 		return err
 	}
 
-	slog.Info("DB", "action", "insertDocument", "colName", colName, "document", document)
+	slog.Debug("DB", "action", "insertDocument", "colName", colName, "document", document)
 	return nil
 }
 
@@ -77,7 +77,7 @@ func UpdateDocument(colName string, filter interface{}, update interface{}) erro
 		return err
 	}
 
-	slog.Info("DB", "action", "updateDocument", "colName", colName, "filter", filter, "document", update)
+	slog.Debug("DB", "action", "updateDocument", "colName", colName, "filter", filter, "document", update)
 	return nil
 }
 
