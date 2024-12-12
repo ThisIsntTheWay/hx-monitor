@@ -18,14 +18,15 @@ type Number struct {
 }
 
 type HXArea struct {
-	ID                primitive.ObjectID `bson:"_id"`
-	Name              string             `bson:"name"`
-	NextAction        time.Time          `bson:"next_action"`
-	LastAction        time.Time          `bson:"last_action"`
-	LastActionSuccess bool               `bson:"last_action_success"`
-	SubAreas          []HXSubArea        `bson:"sub_areas"`
-	NumberName        string             `bson:"number_name"`
-	LastError         string             `bson:"last_error"`
+	ID                   primitive.ObjectID `bson:"_id"`
+	Name                 string             `bson:"name"`
+	NextAction           time.Time          `bson:"next_action"`
+	LastAction           time.Time          `bson:"last_action"`
+	LastActionSuccess    bool               `bson:"last_action_success"`
+	FlightOperatingHours []time.Time        `bson:"flight_operating_hours"`
+	SubAreas             []HXSubArea        `bson:"sub_areas"`
+	NumberName           string             `bson:"number_name"`
+	LastError            string             `bson:"last_error"`
 }
 
 type HXSubArea struct {

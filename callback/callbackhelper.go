@@ -213,6 +213,7 @@ func UpdateHxAreaInDatabase(finalTranscript string, callSid string, timestamp ti
 	}
 
 	area.NextAction = airspaceStatus.NextUpdate
+	area.FlightOperatingHours = airspaceStatus.OperatingHours
 	area.SubAreas = createHxSubAreas(airspaceStatus, area.Name)
 	area.LastActionSuccess = success
 	area.LastError = lastError
