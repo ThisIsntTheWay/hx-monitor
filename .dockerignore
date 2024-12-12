@@ -12,6 +12,6 @@ whisper_models
 frontend
 
 # Binaries, bootstrap scripts
-hx-checker
-hx-checker-api
+hx-monitor
+hx-monitor-api
 seed-database.sh

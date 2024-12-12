@@ -1,10 +1,10 @@
-module github.com/thisisnttheway/hx-checker-api
+module github.com/thisisnttheway/hx-monitor-api
 
 go 1.23.3
 
 require (
 	github.com/gorilla/mux v1.8.1
-	github.com/thisisnttheway/hx-checker v0.0.0
+	github.com/thisisnttheway/hx-monitor v0.0.0
 	go.mongodb.org/mongo-driver v1.17.1
 )
 
@@ -21,4 +21,4 @@ require (
 	golang.org/x/text v0.17.0 // indirect
 )
 
-replace github.com/thisisnttheway/hx-checker v0.0.0 => ../
+replace github.com/thisisnttheway/hx-monitor v0.0.0 => ../

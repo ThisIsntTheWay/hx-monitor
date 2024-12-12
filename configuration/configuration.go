@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/thisisnttheway/hx-checker/logger"
+	"github.com/thisisnttheway/hx-monitor/logger"
 )
 
 // --------------------------

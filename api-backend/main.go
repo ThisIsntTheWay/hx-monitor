@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/thisisnttheway/hx-checker/configuration"
-	"github.com/thisisnttheway/hx-checker/db"
-	"github.com/thisisnttheway/hx-checker/logger"
+	"github.com/thisisnttheway/hx-monitor/configuration"
+	"github.com/thisisnttheway/hx-monitor/db"
+	"github.com/thisisnttheway/hx-monitor/logger"
 )
 
 const defaultPort string = "8080"

@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/thisisnttheway/hx-checker/models"
+	"github.com/thisisnttheway/hx-monitor/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"

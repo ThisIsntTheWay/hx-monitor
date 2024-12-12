@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	c "github.com/thisisnttheway/hx-checker/configuration"
+	c "github.com/thisisnttheway/hx-monitor/configuration"
 )
 
 // Downloads a recording and returns the absolute file path of the saved recording

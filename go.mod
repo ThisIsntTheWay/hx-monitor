@@ -1,4 +1,4 @@
-module github.com/thisisnttheway/hx-checker
+module github.com/thisisnttheway/hx-monitor
 
 go 1.23
 

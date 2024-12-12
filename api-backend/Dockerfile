@@ -1,10 +1,10 @@
 # Must use parent dir as context
 FROM golang:1.23.3-alpine AS build
 
-WORKDIR /go/src/app/hx-checker
+WORKDIR /go/src/app/hx-monitor
 COPY . .
 
-WORKDIR /go/src/app/hx-checker/api-callback
+WORKDIR /go/src/app/hx-monitor/api-callback
 COPY ./api-backend .
 
 RUN go clean; go mod tidy

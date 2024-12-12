@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/thisisnttheway/hx-checker/db"
-	"github.com/thisisnttheway/hx-checker/models"
-	"github.com/thisisnttheway/hx-checker/transcript"
+	"github.com/thisisnttheway/hx-monitor/db"
+	"github.com/thisisnttheway/hx-monitor/models"
+	"github.com/thisisnttheway/hx-monitor/transcript"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/text/cases"

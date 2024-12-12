@@ -3,8 +3,8 @@ mongodb-test
 run*.log
 
 # Builds
-hx-checker
-hx-checker-api
+hx-monitor
+hx-monitor-api
 
 # Other
 .env

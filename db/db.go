@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"time"
 
-	c "github.com/thisisnttheway/hx-checker/configuration"
-	"github.com/thisisnttheway/hx-checker/logger"
+	c "github.com/thisisnttheway/hx-monitor/configuration"
+	"github.com/thisisnttheway/hx-monitor/logger"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )

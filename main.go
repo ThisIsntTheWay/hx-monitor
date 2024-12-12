@@ -5,12 +5,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/thisisnttheway/hx-checker/callback"
-	"github.com/thisisnttheway/hx-checker/caller"
-	"github.com/thisisnttheway/hx-checker/configuration"
-	"github.com/thisisnttheway/hx-checker/db"
-	"github.com/thisisnttheway/hx-checker/logger"
-	"github.com/thisisnttheway/hx-checker/monitor"
+	"github.com/thisisnttheway/hx-monitor/callback"
+	"github.com/thisisnttheway/hx-monitor/caller"
+	"github.com/thisisnttheway/hx-monitor/configuration"
+	"github.com/thisisnttheway/hx-monitor/db"
+	"github.com/thisisnttheway/hx-monitor/logger"
+	"github.com/thisisnttheway/hx-monitor/monitor"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -95,8 +95,6 @@ func main() {
 			"lastExecTime", lastExecTime,
 		)
 
-		// ToDo: better concurrency handling when calling
-		// (Meiringen got called 3 times at the same time, promting lastResultSuccess to false)
 		if lastExecTime.After(nextActionableTime) {
 			lastExecTime = time.Now()
 			slog.Info("MAIN",

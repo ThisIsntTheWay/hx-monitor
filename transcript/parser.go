@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/thisisnttheway/hx-checker/models"
+	"github.com/thisisnttheway/hx-monitor/models"
 )
 
 var _thisYear int = time.Now().Year()

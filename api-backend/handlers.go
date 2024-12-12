@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/thisisnttheway/hx-checker/db"
-	"github.com/thisisnttheway/hx-checker/models"
+	"github.com/thisisnttheway/hx-monitor/db"
+	"github.com/thisisnttheway/hx-monitor/models"
 	"go.mongodb.org/mongo-driver/bson"
 )
 

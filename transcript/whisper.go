@@ -14,7 +14,7 @@ import (
 
 	"github.com/ggerganov/whisper.cpp/bindings/go/pkg/whisper"
 	wav "github.com/go-audio/wav"
-	"github.com/thisisnttheway/hx-checker/logger"
+	"github.com/thisisnttheway/hx-monitor/logger"
 )
 
 // File path of whisper model
