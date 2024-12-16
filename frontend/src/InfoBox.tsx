@@ -12,7 +12,26 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
   /* States */
   const [showInfoBox, setShowInfoBox] = useState<boolean>(visibility);
   const [apiTranscriptData, setApiTranscriptData] = useState<ApiResponseTranscript | null>(null);
+  const [lastUpdateTime, updateLastUpdateTime] = useState<string>("...")
+  const [nextUpdateTime, updateNextUpdateTime] = useState<string>("...")
   const [err, setError] = useState<string>("");
+
+  // Keep refreshing update times so the client is always up to date
+  useEffect(() => {
+    const updateTimeStates = () => {
+      if (resolvedArea) {
+        updateLastUpdateTime(timeDiffString(resolvedArea.LastAction))
+        updateNextUpdateTime(timeDiffString(resolvedArea.NextAction))
+      }      
+    }
+
+    updateTimeStates()
+    const intervalId = setInterval(() => {
+      updateTimeStates()
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     setShowInfoBox(visibility);
@@ -44,27 +63,29 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
   const closeInfoBox = () => setShowInfoBox(false);
   const resolvedArea = feature && apiAreaData ? resolveAreaFromFeature(feature, apiAreaData) : null;
 
-  const timeAgoString = (): string => {
+  const timeDiffString = (timeString: string): string => {
     if (!resolvedArea) {
       return "❓"
     }
 
-    const pastDate = new Date(resolvedArea.LastAction).getTime();
+    const pastDate = new Date(timeString).getTime();
     const now = new Date().getTime();
 
     const diffMs = now - pastDate;
 
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const diffDays = Math.floor(Math.abs(diffMs) / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor((Math.abs(diffMs) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((Math.abs(diffMs) % (1000 * 60 * 60)) / (1000 * 60));
   
     // Build the time ago string based on which values are non-zero
     let result = '';
     if (diffDays > 0) result += `${diffDays}d, `;
     if (diffHours > 0 || diffDays > 0) result += `${diffHours}h, `;
-    result += `${diffMinutes}m`;
+    if (diffMinutes > 0) result += `${diffMinutes}m`;
 
+    // Remove trailing stuff
     result = result.replace(/, $/, '');
+    //result += diffMs > 0 ? ' ago' : 'from now';
 
     return result;
   }
@@ -80,10 +101,10 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
         <>
           <h1>{capitalizeString(resolvedArea.Name)}</h1>
           <p>
-            Last updated: <span className="time-string">{timeAgoString()}</span> ago<br/>
-            Next action: {resolvedArea.NextAction}
+            Last updated <span className="time-string">{lastUpdateTime}</span> ago<br/>
+            Next update in <span className="time-string">{nextUpdateTime}</span><br/>
           </p>
-          
+
           {resolvedArea.SubAreas.map((subArea, i) => (
             <p key={i}>
               <strong>{subArea.Fullname}</strong> {subArea.Status ? "🔴" : "🟢"}<br/>
