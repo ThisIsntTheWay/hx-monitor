@@ -14,6 +14,21 @@
         ],
         "testingTimeAndDate": "2024-11-11T14:42:00+01:00",
         "expectedNextAction": "2024-11-25T07:30:00+01:00"        
+    },{
+        "hx_area": "meiringen",
+        "transcript": "My ring and CTR and PMA are not active. Expect CTR and TMA my ring and to be active again on the 6th of January 2025 from 1310. Local time. If you hear this message on the 6th of January 2025, after 1310, local time contact, the chief flight operations. My room on 058461 67, 06 to check the current air space status.",
+        "expectedVerdict": "AREA_NOT_ACTIVE",
+        "expectedHxAreasActiveStatus": [
+            {"1": false},
+            {"2": false},
+            {"3": false},
+            {"4": false},
+            {"5": false},
+            {"6": false},
+            {"0": false}
+        ],
+        "testingTimeAndDate": "2024-12-16T14:42:00+01:00",
+        "expectedNextAction": "2025-01-06T13:10:00+01:00"        
     },
     {
         "hx_area": "meiringen",
