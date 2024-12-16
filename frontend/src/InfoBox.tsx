@@ -85,7 +85,6 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
 
     // Remove trailing stuff
     result = result.replace(/, $/, '');
-    //result += diffMs > 0 ? ' ago' : 'from now';
 
     return result;
   }
@@ -105,6 +104,7 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
             Next update in <span className="time-string">{nextUpdateTime}</span><br/>
           </p>
 
+          
           {resolvedArea.SubAreas.map((subArea, i) => (
             <p key={i}>
               <strong>{subArea.Fullname}</strong> {subArea.Status ? "🔴" : "🟢"}<br/>
