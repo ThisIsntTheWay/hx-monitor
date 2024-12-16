@@ -22,14 +22,37 @@ export interface Area {
     LastError: string;
 }
 
-export interface ApiResponse {
+export interface ApiResponseArea {
     message: string;
     data: Area[];
 }
 
-export const fetchApiData = async (endpoint: string): Promise<ApiResponse> => {
+interface Transcript {
+    Transcript: string
+}
+
+interface Transcripts {
+    Amount: number,
+    Transcripts: Transcript[]
+}
+
+export interface ApiResponseTranscript {
+    message: string;
+    data: Transcripts;
+}
+
+export const fetchApiAreas = async (): Promise<ApiResponseArea> => {
     try {
-        const response = await axios.get(`${API_BASE_URL}${endpoint}`);
+        const response = await axios.get(`${API_BASE_URL}/api/v1/areas`);
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || error.message || 'Unknown error occurred');
+    }
+};
+
+export const fetchApiTranscript = async (area: string): Promise<ApiResponseTranscript> => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/api/v1/transcripts/${area}/latest`);
         return response.data;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || error.message || 'Unknown error occurred');
@@ -42,7 +65,7 @@ interface FeatureStyling {
 }
 
 // Returns a matching SubArea for a given feature
-const resolveSubAreaFromFeature = (feature: any, apiData: ApiResponse): SubArea | undefined => {
+const resolveSubAreaFromFeature = (feature: any, apiData: ApiResponseArea): SubArea | undefined => {
     const resolvedArea = resolveAreaFromFeature(feature, apiData)
     const matchingSubArea = resolvedArea?.SubAreas.find(subArea => {
         return subArea.Fullname === feature.properties.Name;
@@ -55,7 +78,7 @@ const resolveSubAreaFromFeature = (feature: any, apiData: ApiResponse): SubArea 
 }
 
   // Resolves a matching Area for a given feature
-const resolveAreaFromFeature = (feature: any, apiData: ApiResponse): Area | undefined => {
+export const resolveAreaFromFeature = (feature: any, apiData: ApiResponseArea): Area | undefined => {
     const candidateName = feature.properties.Name.split(" ")[1].toLowerCase();
     const matchingArea = apiData?.data?.find(area => {
         return area.Name === candidateName;
@@ -67,8 +90,8 @@ const resolveAreaFromFeature = (feature: any, apiData: ApiResponse): Area | unde
     return matchingArea;
 }
 
-  // Returns a color for a feature based on its correspinding SubAreas status
-  export const GetStylingForFeature = (feature: any, apiData: ApiResponse): FeatureStyling => {
+// Returns a color for a feature based on its correspinding SubAreas status
+export const getStylingForFeature = (feature: any, apiData: ApiResponseArea): FeatureStyling => {
     let featureStyling: FeatureStyling = {
         Color: "yellow",
         Opacity: 1

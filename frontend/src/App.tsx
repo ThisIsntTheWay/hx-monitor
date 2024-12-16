@@ -3,28 +3,71 @@ import './App.css';
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
 import { LatLngTuple } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { fetchApiData, ApiResponse, GetStylingForFeature } from './utils/fetchApiData';
+import {
+  ApiResponseArea, Area, SubArea,
+  ApiResponseTranscript,
+  fetchApiAreas, fetchApiTranscript, getStylingForFeature, resolveAreaFromFeature
+ } from './utils/fetchApiData';
+import InfoBox from './InfoBox';
 
 // Define the center coordinates for Interlaken, Switzerland
 const INTERLAKEN_COORDS: LatLngTuple = [46.6863, 7.8632]; // Latitude, Longitude
 
 const App: React.FC = () => {
   const [geoJsonData, setGeoJsonData] = useState<any>(null);
-  const [apiData, setApiData] = useState<ApiResponse | null>(null);
+  const [apiAreaData, setApiAreaData] = useState<ApiResponseArea | null>(null);
+  const [apiTranscriptData, setApiTranscriptData] = useState<ApiResponseTranscript | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isFetching, setFetching] = useState<boolean>(false);
+  const [featureState, setFeatureState] = useState<any>(null)
   
-  const doApiFetch = () => {
-    const endpoint = '/api/v1/areas'
-    console.info("Fetching API ("+endpoint+")...");
+  const apiFetchAreas = () => {
     setError(null)
     setFetching(true)
 
-    fetchApiData(endpoint)
-      .then(setApiData)
+    fetchApiAreas()
+      .then(setApiAreaData)
       .catch((err) => setError(err.message))
       .finally(() => setFetching(false));
   }
+
+  // Infobox
+
+  const setInfoBoxContent = (feature: any, apiData: ApiResponseArea) => {
+    console.log("CALLING")
+    setError(null)
+    const resolvedArea = resolveAreaFromFeature(feature, apiData)
+    const areaName = resolvedArea?.Name ?? ""
+    if (areaName === "") {
+      console.log("ERR")
+      setError("Could not resolve area name")
+      return
+    }
+
+    setInfoBoxAreaName(areaName)
+    setInfoBoxLastAction(`${resolvedArea?.LastAction}`)
+
+    console.log("SETTING TRANSCTIPT")
+    fetchApiTranscript(areaName)
+      .then(setApiTranscriptData)
+      .catch((err) => setError(err.message))
+    
+    console.log("apiTranscript:", apiTranscriptData)
+  }
+  /*
+  useEffect(() => {
+    const handleClickOutside = (event: any) => {
+      if (!showInfoBox) return
+      if (event.target.closest('.area-info-box')) return;
+      setInfoBoxVisbility(false);
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);*/
 
   // Fetch GeoJSON data
   useEffect(() => {
@@ -35,49 +78,52 @@ const App: React.FC = () => {
   }, []);
 
   // Fetch data from the REST API
-  useEffect(doApiFetch, []);
+  useEffect(apiFetchAreas, []);
   
   return (
     <div className="App">
-      {(!apiData || error) && <div className="gray-overlay"></div>}
+      {(!apiAreaData || error) && <div className="gray-overlay"></div>}
 
-      <div className={`center-box ${apiData ? 'fade-out' : ''} ${error ? 'error-box' : ''}`}>
+      <div id="fetch-info-box" className={`box ${error ? 'error-box' : ''}`} hidden={apiAreaData === null ? false : true}>
         <h3>
           <div>
             <h1>
-              {!apiData && !error && (<span className="clock-spinner"></span>)}
+              {!apiAreaData && !error && (<span className="clock-spinner"></span>)}
               {error && "❌"}
             </h1>
             <p>
-              {!apiData && !error && "Fetching airspace status..."}
+              {!apiAreaData && !error && "Fetching airspace status..."}
               {error && (<div>API unreachable: <b>{error}</b></div>)}
             </p>
             <p>
-              {!isFetching && <button className="button" onClick={doApiFetch}>⟳</button>}
+              {!isFetching && <button className="button" onClick={apiFetchAreas}>⟳</button>}
             </p>
           </div>
         </h3>
       </div>
+
+      <InfoBox apiArea={apiAreaData} feature={featureState} error={error} />
       
-      <div className={`${!apiData || isFetching ? 'grayscale' : ''}`}>
+      <div className={`${!apiAreaData || isFetching ? 'grayscale' : ''}`}>
         <MapContainer center={INTERLAKEN_COORDS} zoom={13} style={{ height: '100vh', width: '100%' }}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' />
           
           {/* Render GeoJSON data */}
-          {apiData && geoJsonData && (
+          {apiAreaData && geoJsonData && (
             <GeoJSON
               data={geoJsonData}
               style={(feature) => ({
-                color: GetStylingForFeature(feature, apiData).Color,
+                color: getStylingForFeature(feature, apiAreaData).Color,
                 weight: 3,
-                opacity: GetStylingForFeature(feature, apiData).Opacity,
+                opacity: getStylingForFeature(feature, apiAreaData).Opacity,
+                interactive: true,
               })}
               onEachFeature={(feature, layer) => {
-                if (feature.properties) {
-                  layer.bindPopup(
-                    `<strong>${feature.properties.Name || 'Unnamed Feature'}</strong>`
-                  );
-                }
+                layer.on('click', () => {
+                  setFeatureState(feature)
+                  setInfoBoxVisbility(true)
+                  setInfoBoxContent(feature, apiAreaData)
+                });
               }}
             />
           )}

@@ -58,7 +58,7 @@ h3 {
 }
 
 /* --- Boxes --- */
-.center-box {
+.box {
   position: absolute; /* Position the box above the map */
   top: 50%;
   left: 50%;
@@ -72,15 +72,24 @@ h3 {
   text-align: center;
   opacity: 1;
   z-index: 1000; /* Ensure the box is above the map */
-  /*transition: opacity 0.1s ease-out;*/
 }
 
 .error-box {
   background-color: rgb(255, 236, 236);
 }
 
-.fade-out {
-  opacity: 0;
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+button:focus {
+  outline: none;
 }
 
 /* --- Spinner --- */
