@@ -1,58 +1,85 @@
-import React, { useState } from 'react';
-import { ApiResponseArea, ApiResponseTranscript, resolveAreaFromFeature } from './utils/fetchApiData';
-
-/* States */
-const [showInfoBox, setVisibility] = useState<boolean>(false);
-const closeInfoBox = () => setVisibility(false)
+import React, { useEffect, useState } from 'react';
+import { ApiResponseArea, ApiResponseTranscript, resolveAreaFromFeature, fetchApiTranscript } from './utils/fetchApiData';
 
 /* Box */
 export interface BoxData {
-  apiArea: ApiResponseArea | null,
-  apiTranscript: ApiResponseTranscript | null,
+  apiAreaData: ApiResponseArea | null,
   feature: any,
-  error: string | null,
+  visibility: boolean,
 }
 
-const InfoBox: React.FC<BoxData> = (props) => {
-  const { apiArea, feature, error } = props;
+const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
+  /* States */
+  const [showInfoBox, setShowInfoBox] = useState<boolean>(visibility);
+  const [apiTranscriptData, setApiTranscriptData] = useState<ApiResponseTranscript | null>(null);
+  const [err, setError] = useState<string>("");
 
-  if (apiArea === null) {
-    console.error("'apiArea' must not be null before InfoBox can be shown")
-    return
-  }
+  useEffect(() => {
+    setShowInfoBox(visibility);
+  }, [visibility]);
 
-  const resolvedArea = resolveAreaFromFeature(feature, apiArea)
-  if (!resolvedArea) {
-    console.error("Could not resolve area from feature:", feature)
-    return
-  }
+  useEffect(() => {
+    if (feature && apiAreaData) {
+      const resolvedArea = resolveAreaFromFeature(feature, apiAreaData);
+
+      if (!resolvedArea) {
+        setError("UI error: Could not resolve area from given feature.");
+        console.error("Could not resolve area from feature:", feature);
+        return;
+      }
+
+      if (resolvedArea.Name === "Unknown") {
+        setError("UI error: Could not resolve area from given feature.");
+        return;
+      }
+
+      // Fetch transcript data for the resolved area
+      setError("");
+      fetchApiTranscript(resolvedArea.Name)
+        .then(setApiTranscriptData)
+        .catch((err) => setError(err.message));
+    }
+  }, [feature, apiAreaData]);
+
+  const closeInfoBox = () => setShowInfoBox(false);
+  const resolvedArea = feature && apiAreaData ? resolveAreaFromFeature(feature, apiAreaData) : null;
 
   return (
     <div id="area-info-box" className="box" hidden={!showInfoBox}>
-    <button className="close-btn" onClick={closeInfoBox}>X</button>
-    <h1>{resolvedArea.Name}</h1>
-    {!error ? (
-      <p>
-        <h3>Sub areas</h3>
-        {resolvedArea.SubAreas.map((subArea, i) => (
-          <p key={i}>
-            Index: {i}<br/>
-            FullName: {subArea.Fullname}
-            Status: {subArea.Status}
-          </p>
-        ))}
-        <p>
+      <button className="close-btn" onClick={closeInfoBox}>X</button>
+      {resolvedArea && !err ? (
+        <>
+          <h1>{resolvedArea.Name}</h1>
+          <h3>Sub areas</h3>
+          {resolvedArea.SubAreas.map((subArea, i) => (
+            <p key={i}>
+              Index: {i}
+              <br />
+              FullName: {subArea.Fullname}
+              <br />
+              Status: {subArea.Status}
+            </p>
+          ))}
           <h3>Transcript</h3>
-          {apiTranscript && `${apiTranscript.data.Transcripts[0].Transcript}`}
-        </p>
-        Last action: {resolvedArea.LastAction}
-      </p>
-    ) : (
-      <p>
-        {error}
-      </p>
-    )}
-  </div>
+          {/* Ensure that transcripts were actually fetched */}
+          {apiTranscriptData && apiTranscriptData.data && Array.isArray(apiTranscriptData.data.Transcripts) ? (
+            <p>
+              {apiTranscriptData.data.Transcripts.length > 0
+                ? apiTranscriptData.data.Transcripts[0].Transcript
+                : "❌ No transcripts available."}
+            </p>
+          ) : (
+            <p><span className="clock-spinner"></span>Fetching...</p>
+          )}
+          <p>
+            Next action: {resolvedArea.NextAction}<br/>
+            Last action: {resolvedArea.LastAction}
+          </p>
+        </>
+      ) : (
+        <p>{err || "Loading..."}</p>
+      )}
+    </div>
   );
 };
 

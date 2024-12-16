@@ -1,25 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
-import { LatLngTuple } from 'leaflet';
+import { LatLngTuple, } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import {
-  ApiResponseArea, Area, SubArea,
-  ApiResponseTranscript,
-  fetchApiAreas, fetchApiTranscript, getStylingForFeature, resolveAreaFromFeature
- } from './utils/fetchApiData';
+import { ApiResponseArea, fetchApiAreas, getStylingForFeature } from './utils/fetchApiData';
 import InfoBox from './InfoBox';
 
-// Define the center coordinates for Interlaken, Switzerland
-const INTERLAKEN_COORDS: LatLngTuple = [46.6863, 7.8632]; // Latitude, Longitude
+const INTERLAKEN_COORDS: LatLngTuple = [46.6863, 7.8632]; // Lat, Lon
 
 const App: React.FC = () => {
   const [geoJsonData, setGeoJsonData] = useState<any>(null);
   const [apiAreaData, setApiAreaData] = useState<ApiResponseArea | null>(null);
-  const [apiTranscriptData, setApiTranscriptData] = useState<ApiResponseTranscript | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [featureState, setFeatureState] = useState<any>(null);
+  const [geoJsonError, setGeoJsonError] = useState<string | null>(null);
   const [isFetching, setFetching] = useState<boolean>(false);
-  const [featureState, setFeatureState] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null);
   
   const apiFetchAreas = () => {
     setError(null)
@@ -31,78 +26,61 @@ const App: React.FC = () => {
       .finally(() => setFetching(false));
   }
 
-  // Infobox
-
-  const setInfoBoxContent = (feature: any, apiData: ApiResponseArea) => {
-    console.log("CALLING")
-    setError(null)
-    const resolvedArea = resolveAreaFromFeature(feature, apiData)
-    const areaName = resolvedArea?.Name ?? ""
-    if (areaName === "") {
-      console.log("ERR")
-      setError("Could not resolve area name")
-      return
-    }
-
-    setInfoBoxAreaName(areaName)
-    setInfoBoxLastAction(`${resolvedArea?.LastAction}`)
-
-    console.log("SETTING TRANSCTIPT")
-    fetchApiTranscript(areaName)
-      .then(setApiTranscriptData)
-      .catch((err) => setError(err.message))
-    
-    console.log("apiTranscript:", apiTranscriptData)
-  }
-  /*
-  useEffect(() => {
-    const handleClickOutside = (event: any) => {
-      if (!showInfoBox) return
-      if (event.target.closest('.area-info-box')) return;
-      setInfoBoxVisbility(false);
-    };
-    
-    document.addEventListener('click', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, []);*/
-
-  // Fetch GeoJSON data
+  // Get GeoJSON data
   useEffect(() => {
     fetch('/shv_airspaces_processed.json')
       .then(response => response.json())
       .then(data => setGeoJsonData(data))
-      .catch(error => console.error('Error loading GeoJSON:', error));
+      .catch(err => setGeoJsonError(err.message));
   }, []);
 
-  // Fetch data from the REST API
   useEffect(apiFetchAreas, []);
+  
+  useEffect(() => {
+    console.log("featureState updated:", featureState);
+  }, [featureState]);
   
   return (
     <div className="App">
-      {(!apiAreaData || error) && <div className="gray-overlay"></div>}
+      {(!apiAreaData || error || geoJsonError) && <div className="gray-overlay"></div>}
 
-      <div id="fetch-info-box" className={`box ${error ? 'error-box' : ''}`} hidden={apiAreaData === null ? false : true}>
+      <div
+        id="fetch-info-box"
+        className={`box ${(error || geoJsonError) ? 'error-box' : ''}`}
+        hidden={apiAreaData === null || geoJsonError !== null ? false : true}
+      >
         <h3>
           <div>
             <h1>
-              {!apiAreaData && !error && (<span className="clock-spinner"></span>)}
-              {error && "❌"}
+              {!apiAreaData && (!error && !geoJsonError) ? (
+                <span className="clock-spinner"></span>
+              ) : (
+                "❌"
+              )}
             </h1>
             <p>
-              {!apiAreaData && !error && "Fetching airspace status..."}
-              {error && (<div>API unreachable: <b>{error}</b></div>)}
+              {(!geoJsonError && (!apiAreaData && !error)) && "Fetching data..."}
+              {geoJsonError ? (
+                <div>
+                  Error downloading airspace map data:<br/>
+                  <b>{geoJsonError}</b><p/>
+                  <em>Please reload the page or contact administrator.</em>
+                </div>
+              ) : error ? (
+                <div>Airspace info API unreachable:<br/>
+                <b>{error}</b></div>
+              ) : null}
             </p>
             <p>
-              {!isFetching && <button className="button" onClick={apiFetchAreas}>⟳</button>}
+              {!isFetching && !geoJsonError && <button className="button" onClick={apiFetchAreas}>⟳</button>}
             </p>
           </div>
         </h3>
       </div>
 
-      <InfoBox apiArea={apiAreaData} feature={featureState} error={error} />
+      {featureState && apiAreaData && (<InfoBox
+        apiAreaData={apiAreaData} feature={featureState} visibility={true}
+      />)}
       
       <div className={`${!apiAreaData || isFetching ? 'grayscale' : ''}`}>
         <MapContainer center={INTERLAKEN_COORDS} zoom={13} style={{ height: '100vh', width: '100%' }}>
@@ -120,9 +98,12 @@ const App: React.FC = () => {
               })}
               onEachFeature={(feature, layer) => {
                 layer.on('click', () => {
-                  setFeatureState(feature)
-                  setInfoBoxVisbility(true)
-                  setInfoBoxContent(feature, apiAreaData)
+                  if (feature.properties.Name !== featureState?.properties?.Name) {
+                    console.log("Updating feature state...")
+                    setFeatureState(feature);
+                  } else {
+                    console.log("Not updating feature state as this features Name ("+feature.properties.Name+") is identical to the states")
+                  }
                 });
               }}
             />

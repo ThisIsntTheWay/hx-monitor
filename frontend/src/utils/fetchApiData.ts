@@ -78,13 +78,29 @@ const resolveSubAreaFromFeature = (feature: any, apiData: ApiResponseArea): SubA
 }
 
   // Resolves a matching Area for a given feature
-export const resolveAreaFromFeature = (feature: any, apiData: ApiResponseArea): Area | undefined => {
+export const resolveAreaFromFeature = (feature: any, apiData: ApiResponseArea | null): Area => {
     const candidateName = feature.properties.Name.split(" ")[1].toLowerCase();
     const matchingArea = apiData?.data?.find(area => {
         return area.Name === candidateName;
     });
-    if (matchingArea === undefined) {
-        console.error("Could not resolve Area based on candidate:", candidateName)
+    if (matchingArea === undefined || apiData === null) {
+        console.error("Could not resolve Area based on candidate:", candidateName, "apiData is:", apiData)
+        
+        // Dummy Area
+        return {
+        ID: "0",
+        Name: "Unknown",
+        LastAction: "",
+        LastActionSuccess: false,
+        NextAction: "",
+        SubAreas: [{
+            Fullname: "Unknown",
+            Name: "Unknown",
+            Status: false,
+        }],
+        NumberName: "",
+        LastError: ""
+        }
     }
 
     return matchingArea;
