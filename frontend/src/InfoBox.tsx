@@ -79,6 +79,11 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
       {resolvedArea && !err ? (
         <>
           <h1>{capitalizeString(resolvedArea.Name)}</h1>
+          <p>
+            Last updated: <span className="time-string">{timeAgoString()}</span> ago<br/>
+            Next action: {resolvedArea.NextAction}
+          </p>
+          
           {resolvedArea.SubAreas.map((subArea, i) => (
             <p key={i}>
               <strong>{subArea.Fullname}</strong> {subArea.Status ? "🔴" : "🟢"}<br/>
@@ -95,10 +100,6 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
           ) : (
             <p><span className="clock-spinner"></span>Fetching...</p>
           )}
-          <p>
-            Last updated: <span className="time-string">{timeAgoString()}</span> ago<br/>
-            Next action: {resolvedArea.NextAction}
-          </p>
         </>
       ) : (
         <p>{err || "Loading..."}</p>
