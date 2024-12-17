@@ -105,6 +105,17 @@ h4 {
   cursor: pointer;
 }
 
+/* --- Flight operating hours text --- */
+.flight-ops-status-text {
+  font-weight: bold;
+}
+.flight-ops-status-text.within {
+  color: orange;
+}
+.flight-ops-status-text.outside {
+  color: darkgreen;
+}
+
 /* --- Spinner --- */
 .clock-spinner {
   display: inline-block;

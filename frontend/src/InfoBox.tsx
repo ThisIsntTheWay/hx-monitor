@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ApiResponseArea, ApiResponseTranscript, resolveAreaFromFeature, fetchApiTranscript } from './utils/fetchApiData';
+import {
+  ApiResponseArea, ApiResponseTranscript, Area,
+  resolveAreaFromFeature, fetchApiTranscript
+} from './utils/fetchApiData';
 
 /* Box */
 export interface BoxData {
@@ -8,26 +11,49 @@ export interface BoxData {
   visibility: boolean,
 }
 
+// Checks if current time is during active flight operation hours
+const withinFlightOperatingHours = (area: Area): boolean => {
+  let indexOfLastPastFlightOpTime = 0;
+  const flightOpsLength = area.FlightOperatingHours.length;
+  const now = new Date().getTime();
+
+  if (flightOpsLength === 2 || flightOpsLength === 4) {
+    area.FlightOperatingHours.forEach((v, i) => {
+      const thisFlightOpTime = new Date(v).getTime();
+      if (now - thisFlightOpTime > 0) {
+        indexOfLastPastFlightOpTime = i;
+      } else {
+        return;
+      }
+    });
+
+    const adjustedIndex = indexOfLastPastFlightOpTime + 1;
+    return flightOpsLength === 4 ? adjustedIndex !== 2 : adjustedIndex < flightOpsLength;
+  }
+  
+  return false
+}
+
 const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
   /* States */
   const [showInfoBox, setShowInfoBox] = useState<boolean>(visibility);
   const [apiTranscriptData, setApiTranscriptData] = useState<ApiResponseTranscript | null>(null);
-  const [lastUpdateTime, updateLastUpdateTime] = useState<string>("...")
-  const [nextUpdateTime, updateNextUpdateTime] = useState<string>("...")
+  const [lastUpdateTime, updateLastUpdateTime] = useState<string>("...");
+  const [nextUpdateTime, updateNextUpdateTime] = useState<string>("...");
   const [err, setError] = useState<string>("");
 
   // Keep refreshing update times so the client is always up to date
   useEffect(() => {
     const updateTimeStates = () => {
       if (resolvedArea) {
-        updateLastUpdateTime(timeDiffString(resolvedArea.LastAction))
-        updateNextUpdateTime(timeDiffString(resolvedArea.NextAction))
+        updateLastUpdateTime(timeDiffString(resolvedArea.LastAction));
+        updateNextUpdateTime(timeDiffString(resolvedArea.NextAction));
       }      
     }
 
     updateTimeStates()
     const intervalId = setInterval(() => {
-      updateTimeStates()
+      updateTimeStates();
     }, 1000);
 
     return () => clearInterval(intervalId);
@@ -67,7 +93,7 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
   // Will always return absolute numbers!
   const timeDiffString = (timeString: string): string => {
     if (!resolvedArea) {
-      return "❓"
+      return "❓";
     }
 
     const pastDate = new Date(timeString).getTime();
@@ -112,6 +138,21 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
               </>
             )}
           </p>
+
+          {/* Flight operating hours */}
+          {resolvedArea.FlightOperatingHours ? (
+            <>
+            <span className={`flight-ops-status-text ${withinFlightOperatingHours(resolvedArea) ? ("within") : ("outside")}`}>
+            {withinFlightOperatingHours(resolvedArea) ? (
+              "Within"
+            ) : (
+              "Outside"
+            )}
+            </span> flight operating hours
+            </>
+          ) : (
+            "No flight operating hours today"
+          )}
 
           {/* SubAreas */}
           {resolvedArea.LastActionSuccess ? (
