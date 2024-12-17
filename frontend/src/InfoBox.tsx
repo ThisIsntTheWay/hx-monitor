@@ -114,7 +114,7 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
           </p>
 
           {/* SubAreas */}
-          {!resolvedArea.LastActionSuccess ? (
+          {resolvedArea.LastActionSuccess ? (
             <div>
               {resolvedArea.SubAreas.map((subArea, i) => (
                 <p key={i}>
@@ -131,16 +131,27 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
             </div>
           )}
 
-          <h3>Transcript</h3>
-          {/* Ensure that transcripts were actually fetched */}
-          {apiTranscriptData && apiTranscriptData.data && Array.isArray(apiTranscriptData.data.Transcripts) ? (
+          {/* Transcripts */}
+          <hr/>
+          <h3><strong>Transcript</strong></h3>
+          {apiTranscriptData ? (
             <p>
-              {apiTranscriptData.data.Transcripts.length > 0
-                ? apiTranscriptData.data.Transcripts[0].Transcript
-                : "❌ No transcripts available."}
+              {apiTranscriptData.data.transcript ? (
+                <span className="transcript-string">
+                  {apiTranscriptData.data.transcript}
+                </span>
+              ) : (
+                <strong>❌ Unavailable</strong>
+              )}
             </p>
           ) : (
-            <p><span className="clock-spinner"></span> Fetching...</p>
+            <div>
+              {!err ? (
+                <p><span className="clock-spinner"></span> Fetching...</p>
+              ) : (
+                <p>❌ Could not fetch: {err}</p>
+              )}
+            </div>
           )}
         </>
       ) : (

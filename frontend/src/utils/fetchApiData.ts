@@ -28,17 +28,13 @@ export interface ApiResponseArea {
 }
 
 interface Transcript {
-    Transcript: string
-}
-
-interface Transcripts {
-    Amount: number,
-    Transcripts: Transcript[]
+    date: string;
+    transcript: string;
 }
 
 export interface ApiResponseTranscript {
     message: string;
-    data: Transcripts;
+    data: Transcript;
 }
 
 export const fetchApiAreas = async (): Promise<ApiResponseArea> => {
