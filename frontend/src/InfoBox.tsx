@@ -63,6 +63,8 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
   const closeInfoBox = () => setShowInfoBox(false);
   const resolvedArea = feature && apiAreaData ? resolveAreaFromFeature(feature, apiAreaData) : null;
 
+  // Calculates difference between now and timeString, returning "Nd, Nh, Nm"
+  // Will always return absolute numbers!
   const timeDiffString = (timeString: string): string => {
     if (!resolvedArea) {
       return "❓"
@@ -94,22 +96,41 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
   }
 
   return (
-    <div id="area-info-box" className="box" hidden={!showInfoBox}>
+    <div id="area-info-box" className={`box ${!resolvedArea?.LastActionSuccess && "warning-box"}`} hidden={!showInfoBox}>
       <button className="close-btn" onClick={closeInfoBox}>✖</button>
       {resolvedArea && !err ? (
         <>
-          <h1>{capitalizeString(resolvedArea.Name)}</h1>
+          {/* Header */}
+          <h1>{!resolvedArea.LastActionSuccess && "⚠️"} {capitalizeString(resolvedArea.Name)}</h1>
+          
+          {/* Update times */}
           <p>
             Last updated <span className="time-string">{lastUpdateTime}</span> ago<br/>
-            Next update in <span className="time-string">{nextUpdateTime}</span><br/>
+            {resolvedArea.LastAction && (
+              <>
+                Next update in <span className="time-string">{nextUpdateTime}</span><br/>
+              </>
+            )}
           </p>
 
-          
-          {resolvedArea.SubAreas.map((subArea, i) => (
-            <p key={i}>
-              <strong>{subArea.Fullname}</strong> {subArea.Status ? "🔴" : "🟢"}<br/>
-            </p>
-          ))}
+          {/* SubAreas */}
+          {!resolvedArea.LastActionSuccess ? (
+            <div>
+              {resolvedArea.SubAreas.map((subArea, i) => (
+                <p key={i}>
+                  <strong>{subArea.Fullname}</strong> {(resolvedArea.LastActionSuccess && !subArea.Status) ? "🟢" : "🔴"}<br/>
+                </p>
+              ))}
+            </div>
+          ) : (
+            <div>
+              <h3><strong>The parser has encountered an error!</strong></h3>
+              <h4><em>{resolvedArea.LastError ? resolvedArea.LastError : "Unknown error"}</em></h4>
+              Area status could not be dynamically determined.<br/>
+              Either consult transcript or call {capitalizeString(resolvedArea.Name)} directly.
+            </div>
+          )}
+
           <h3>Transcript</h3>
           {/* Ensure that transcripts were actually fetched */}
           {apiTranscriptData && apiTranscriptData.data && Array.isArray(apiTranscriptData.data.Transcripts) ? (
@@ -119,7 +140,7 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
                 : "❌ No transcripts available."}
             </p>
           ) : (
-            <p><span className="clock-spinner"></span>Fetching...</p>
+            <p><span className="clock-spinner"></span> Fetching...</p>
           )}
         </>
       ) : (
