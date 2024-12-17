@@ -17,8 +17,8 @@ type ResponseError struct {
 }
 
 type transcriptAggregation struct {
-	Transcript string    `bson:"transcript"`
-	Date       time.Time `bson:"date"`
+	Transcript string    `bson:"transcript" json:"transcript"`
+	Date       time.Time `bson:"date" json:"date"`
 }
 
 const apiBase string = "/api/v1/"

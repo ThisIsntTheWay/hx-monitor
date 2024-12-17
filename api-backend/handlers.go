@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/thisisnttheway/hx-monitor/db"
@@ -156,16 +155,6 @@ func handleTranscripts(t []transcriptAggregation, e error, a string, w http.Resp
 		}
 	}
 
-	type MultipleTranscripts struct {
-		Amount      int         `json:"amount"`
-		Transcripts interface{} `json:"transcripts"`
-	}
-
-	type SingleTranscript struct {
-		Transcript string    `json:"transcript"`
-		Date       time.Time `json:"date"`
-	}
-
 	var s interface{}
 	if e != nil {
 		e := ResponseError{
@@ -185,15 +174,17 @@ func handleTranscripts(t []transcriptAggregation, e error, a string, w http.Resp
 	} else {
 		var dataObject interface{}
 		if len(t) > 1 {
+			type MultipleTranscripts struct {
+				Amount      int                     `json:"amount"`
+				Transcripts []transcriptAggregation `json:"transcripts"`
+			}
+
 			dataObject = MultipleTranscripts{
 				Amount:      len(t),
 				Transcripts: t,
 			}
 		} else {
-			dataObject = SingleTranscript{
-				Transcript: t[0].Transcript,
-				Date:       t[0].Date,
-			}
+			dataObject = t[0]
 		}
 
 		s = ResponseOk{
