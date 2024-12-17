@@ -36,10 +36,6 @@ const App: React.FC = () => {
 
   useEffect(apiFetchAreas, []);
   
-  useEffect(() => {
-    console.log("featureState updated:", featureState);
-  }, [featureState]);
-  
   return (
     <div className="App">
       {(!apiAreaData || error || geoJsonError) && <div className="gray-overlay"></div>}
@@ -99,10 +95,7 @@ const App: React.FC = () => {
               onEachFeature={(feature, layer) => {
                 layer.on('click', () => {
                   if (feature.properties.Name !== featureState?.properties?.Name) {
-                    console.log("Updating feature state...")
                     setFeatureState(feature);
-                  } else {
-                    console.log("Not updating feature state as this features Name ("+feature.properties.Name+") is identical to the states")
                   }
                 });
               }}
