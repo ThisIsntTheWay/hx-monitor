@@ -20,6 +20,7 @@ export interface Area {
     SubAreas: SubArea[];
     NumberName: string;
     LastError: string;
+    FlightOperatingHours: string[];
 }
 
 export interface ApiResponseArea {
@@ -84,18 +85,19 @@ export const resolveAreaFromFeature = (feature: any, apiData: ApiResponseArea | 
         
         // Dummy Area
         return {
-        ID: "0",
-        Name: "Unknown",
-        LastAction: "",
-        LastActionSuccess: false,
-        NextAction: "",
-        SubAreas: [{
-            Fullname: "Unknown",
+            ID: "0",
             Name: "Unknown",
-            Status: false,
-        }],
-        NumberName: "",
-        LastError: ""
+            LastAction: "",
+            LastActionSuccess: false,
+            NextAction: "",
+            SubAreas: [{
+                Fullname: "Unknown",
+                Name: "Unknown",
+                Status: false,
+            }],
+            NumberName: "",
+            LastError: "",
+            FlightOperatingHours: [""],
         }
     }
 
