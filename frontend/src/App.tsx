@@ -11,10 +11,15 @@ const INTERLAKEN_COORDS: LatLngTuple = [46.6863, 7.8632]; // Lat, Lon
 const App: React.FC = () => {
   const [geoJsonData, setGeoJsonData] = useState<any>(null);
   const [apiAreaData, setApiAreaData] = useState<ApiResponseArea | null>(null);
+  const [infoBoxVisibility, setInfoBoxVisibility] = useState<boolean>(false);
   const [featureState, setFeatureState] = useState<any>(null);
   const [geoJsonError, setGeoJsonError] = useState<string | null>(null);
   const [isFetching, setFetching] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const toggleInfoBoxVisibility = () => {
+    setInfoBoxVisibility(prevVisibility => !prevVisibility);
+  };
   
   const apiFetchAreas = () => {
     setError(null);
@@ -75,7 +80,7 @@ const App: React.FC = () => {
       </div>
 
       {featureState && apiAreaData && (<InfoBox
-        apiAreaData={apiAreaData} feature={featureState} visibility={true}
+        apiAreaData={apiAreaData} feature={featureState} visibility={infoBoxVisibility} onClose={toggleInfoBoxVisibility}
       />)}
       
       <div className={`${!apiAreaData || isFetching ? 'grayscale' : ''}`}>
@@ -94,6 +99,7 @@ const App: React.FC = () => {
               })}
               onEachFeature={(feature, layer) => {
                 layer.on('click', () => {
+                  setInfoBoxVisibility(true);
                   if (feature.properties.Name !== featureState?.properties?.Name) {
                     setFeatureState(feature);
                   }
