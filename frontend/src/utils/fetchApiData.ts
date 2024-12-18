@@ -93,7 +93,7 @@ export const resolveAreaFromFeature = (feature: any, apiData: ApiResponseArea | 
             SubAreas: [{
                 Fullname: "Unknown",
                 Name: "Unknown",
-                Status: false,
+                Active: true,
             }],
             NumberName: "",
             LastError: "",
