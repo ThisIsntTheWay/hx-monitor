@@ -32,7 +32,7 @@ type HXArea struct {
 type HXSubArea struct {
 	Fullname string `bson:"full_name"`
 	Name     string `bson:"name"`
-	Status   bool   `bson:"status"`
+	Active   bool   `bson:"active"`
 }
 
 type Call struct {
@@ -65,7 +65,7 @@ type AirspaceStatus struct {
 
 type Area struct {
 	Index  int  `json:"index"`
-	Status bool `json:"status"`
+	Active bool `json:"active"`
 }
 
 type TimeSegment struct {

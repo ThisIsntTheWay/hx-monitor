@@ -8,7 +8,7 @@ if (!API_BASE_URL) {
 export interface SubArea {
     Fullname: string;
     Name: string;
-    Status: boolean;
+    Active: boolean;
 }
 
 export interface Area {
@@ -104,7 +104,7 @@ export const resolveAreaFromFeature = (feature: any, apiData: ApiResponseArea | 
     return matchingArea;
 };
 
-// Returns a color for a feature based on its correspinding SubAreas status
+// Returns a color for a feature based on its corresponding SubAreas activeness
 export const getStylingForFeature = (feature: any, apiData: ApiResponseArea): FeatureStyling => {
     const featureStyling: FeatureStyling = {
         Color: "yellow",
@@ -120,8 +120,8 @@ export const getStylingForFeature = (feature: any, apiData: ApiResponseArea): Fe
     const resolvedArea = resolveAreaFromFeature(feature, apiData);
 
     if (resolvedArea?.LastActionSuccess) {
-        featureStyling.Color = resolvedSubArea?.Status ? 'red' : 'green';
-        featureStyling.Opacity = resolvedSubArea?.Status ? 1 : 0.5;
+        featureStyling.Color = resolvedSubArea?.Active ? 'red' : 'green';
+        featureStyling.Opacity = resolvedSubArea?.Active ? 1 : 0.5;
         return featureStyling;
     }
 

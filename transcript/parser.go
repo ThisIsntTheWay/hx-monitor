@@ -114,15 +114,15 @@ func parseAirspaceStates(transcript string) models.AirspaceStatus {
 				break
 			}
 
-			areas[i+1].Status = true
+			areas[i+1].Active = true
 		}
 
 		// CTR
-		areas[0].Status = true
+		areas[0].Active = true
 	} else if !hasAreNotActive && everyTmaTargeted {
 		// Eveything is active
 		for i := range areas {
-			areas[i].Status = true
+			areas[i].Active = true
 		}
 	} else if hasAreNotActive {
 		// Everything is inactive, therefore preserve defaults

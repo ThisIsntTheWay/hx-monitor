@@ -159,7 +159,7 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
             <div>
               {resolvedArea.SubAreas.map((subArea, i) => (
                 <p key={i}>
-                  <strong>{subArea.Fullname}</strong> {(resolvedArea.LastActionSuccess && !subArea.Status) ? "🟢" : "🔴"}<br/>
+                  <strong>{subArea.Fullname}</strong> {(resolvedArea.LastActionSuccess && !subArea.Active) ? "🟢" : "🔴"}<br/>
                 </p>
               ))}
             </div>

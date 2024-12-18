@@ -84,7 +84,7 @@ func setBadHxStatus(referenceArea string, errorReason string) error {
 		subAreas = append(subAreas, models.HXSubArea{
 			Fullname: area.Fullname,
 			Name:     area.Name,
-			Status:   false,
+			Active:   true,
 		})
 	}
 
@@ -129,7 +129,7 @@ func createHxSubAreas(airspaceStatus models.AirspaceStatus, referenceArea string
 
 		subArea.Fullname = fullName
 		subArea.Name = name
-		subArea.Status = area.Status
+		subArea.Active = area.Active
 
 		result = append(result, subArea)
 	}
