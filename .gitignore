@@ -16,6 +16,7 @@ recordings
 models_whisper/
 
 # Frontend
+frontend/build
 frontend/files
 node_modules/
 shv*.json
