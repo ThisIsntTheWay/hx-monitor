@@ -3,13 +3,12 @@ name: Frontend
 on:
   push:
     paths:
-      - frontend/**
-    paths-ignore:
-      - 'frontend/*.py'
-      - 'frontend/*.json'
-      - 'frontend/*ocker*'
-      - 'frontend/*.md'
-      - 'frontend/public/**'
+      - 'frontend/**'
+      - '!frontend/*.py'
+      - '!frontend/*.json'
+      - '!frontend/*ocker*'
+      - '!frontend/*.md'
+      - '!frontend/public/**'
 
 jobs:
   lint-and-build:
