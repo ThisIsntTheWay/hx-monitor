@@ -17,14 +17,14 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   const apiFetchAreas = () => {
-    setError(null)
-    setFetching(true)
+    setError(null);
+    setFetching(true);
 
     fetchApiAreas()
       .then(setApiAreaData)
       .catch((err) => setError(err.message))
       .finally(() => setFetching(false));
-  }
+  };
 
   // Get GeoJSON data
   useEffect(() => {
@@ -105,6 +105,6 @@ const App: React.FC = () => {
         </div>
     </div>
   );
-}
+};
 
 export default App;

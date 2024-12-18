@@ -31,8 +31,8 @@ const withinFlightOperatingHours = (area: Area): boolean => {
     return flightOpsLength === 4 ? adjustedIndex !== 2 : adjustedIndex < flightOpsLength;
   }
   
-  return false
-}
+  return false;
+};
 
 const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
   /* States */
@@ -49,9 +49,9 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
         updateLastUpdateTime(timeDiffString(resolvedArea.LastAction));
         updateNextUpdateTime(timeDiffString(resolvedArea.NextAction));
       }      
-    }
+    };
 
-    updateTimeStates()
+    updateTimeStates();
     const intervalId = setInterval(() => {
       updateTimeStates();
     }, 1000);
@@ -115,11 +115,11 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility }) => {
     result = result.replace(/, $/, '');
 
     return result;
-  }
+  };
 
   const capitalizeString = (input: string): string => {
     return String(input).charAt(0).toUpperCase() + String(input).slice(1);
-  }
+  };
 
   return (
     <div id="area-info-box" className={`box ${!resolvedArea?.LastActionSuccess && "warning-box"}`} hidden={!showInfoBox}>

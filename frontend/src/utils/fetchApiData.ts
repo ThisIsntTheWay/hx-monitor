@@ -63,16 +63,16 @@ interface FeatureStyling {
 
 // Returns a matching SubArea for a given feature
 const resolveSubAreaFromFeature = (feature: any, apiData: ApiResponseArea): SubArea | undefined => {
-    const resolvedArea = resolveAreaFromFeature(feature, apiData)
+    const resolvedArea = resolveAreaFromFeature(feature, apiData);
     const matchingSubArea = resolvedArea?.SubAreas.find(subArea => {
         return subArea.Fullname === feature.properties.Name;
-    })
+    });
     if (matchingSubArea === undefined) {
-        console.error("Could not resolve SubArea based on feature name:", feature.properties.Name)
+        console.error("Could not resolve SubArea based on feature name:", feature.properties.Name);
     }
 
     return matchingSubArea;
-}
+};
 
   // Resolves a matching Area for a given feature
 export const resolveAreaFromFeature = (feature: any, apiData: ApiResponseArea | null): Area => {
@@ -81,7 +81,7 @@ export const resolveAreaFromFeature = (feature: any, apiData: ApiResponseArea | 
         return area.Name === candidateName;
     });
     if (matchingArea === undefined || apiData === null) {
-        console.error("Could not resolve Area based on candidate:", candidateName, "apiData is:", apiData)
+        console.error("Could not resolve Area based on candidate:", candidateName, "apiData is:", apiData);
         
         // Dummy Area
         return {
@@ -98,22 +98,22 @@ export const resolveAreaFromFeature = (feature: any, apiData: ApiResponseArea | 
             NumberName: "",
             LastError: "",
             FlightOperatingHours: [""],
-        }
+        };
     }
 
     return matchingArea;
-}
+};
 
 // Returns a color for a feature based on its correspinding SubAreas status
 export const getStylingForFeature = (feature: any, apiData: ApiResponseArea): FeatureStyling => {
-    let featureStyling: FeatureStyling = {
+    const featureStyling: FeatureStyling = {
         Color: "yellow",
         Opacity: 1
-    }
+    };
 
     if (!apiData) {
-        featureStyling.Color = "gray"
-        return featureStyling
+        featureStyling.Color = "gray";
+        return featureStyling;
     }
 
     const resolvedSubArea = resolveSubAreaFromFeature(feature, apiData);
@@ -122,8 +122,8 @@ export const getStylingForFeature = (feature: any, apiData: ApiResponseArea): Fe
     if (resolvedArea?.LastActionSuccess) {
         featureStyling.Color = resolvedSubArea?.Status ? 'red' : 'green';
         featureStyling.Opacity = resolvedSubArea?.Status ? 1 : 0.5;
-        return featureStyling
+        return featureStyling;
     }
 
-    return featureStyling
+    return featureStyling;
 };
