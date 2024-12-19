@@ -96,7 +96,7 @@ const App: React.FC = () => {
               ) : null}
             </p>
             <p>
-              {!isFetching && !geoJsonError && <button  onClick={apiFetchAreas}>⟳</button>}
+              {!isFetching && !geoJsonError && <button onClick={apiFetchAreas}>⟳</button>}
             </p>
           </div>
         </h3>
@@ -112,7 +112,7 @@ const App: React.FC = () => {
       
       {/* Map */}
       <div className={`${!apiAreaData || isFetching ? 'grayscale' : ''}`}>
-        <MapContainer center={INTERLAKEN_COORDS} zoom={13} style={{ height: '100vh', width: '100%' }} zoomControl={false}>
+        <MapContainer center={INTERLAKEN_COORDS} zoom={13} style={{ height: '100vh', width: '100%' }}>
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
