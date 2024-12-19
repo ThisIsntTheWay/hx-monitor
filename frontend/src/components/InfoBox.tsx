@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import {
   ApiResponseArea, ApiResponseTranscript, Area,
   resolveAreaFromFeature, fetchApiTranscript
-} from './utils/fetchApiData';
+} from '../utils/fetchApiData';
 
 /* Box */
-export interface BoxData {
+interface boxData {
   apiAreaData: ApiResponseArea | null,
   feature: any,
   visibility: boolean,
@@ -63,7 +63,7 @@ const capitalizeString = (input: string): string => {
   return String(input).charAt(0).toUpperCase() + String(input).slice(1);
 };
 
-const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility, onClose }) => {
+const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose }) => {
   /* States */
   const [apiTranscriptData, setApiTranscriptData] = useState<ApiResponseTranscript | null>(null);
   const [lastUpdateTime, updateLastUpdateTime] = useState<string>("...");
@@ -95,7 +95,7 @@ const InfoBox: React.FC<BoxData> = ({ apiAreaData, feature, visibility, onClose 
     }
   }, [feature, apiAreaData]);
 
-  // Keep refreshing update times so the client is always up to date
+  // Ensure dynamic update times
   useEffect(() => {
     const updateTimeStates = () => {
       if (resolvedArea) {

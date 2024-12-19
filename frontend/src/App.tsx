@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
 import { LatLngTuple, } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { ApiResponseArea, fetchApiAreas, getStylingForFeature } from './utils/fetchApiData';
-import InfoBox from './InfoBox';
+import InfoBox from './components/InfoBox';
 
 const INTERLAKEN_COORDS: LatLngTuple = [46.6863, 7.8632]; // Lat, Lon
 
