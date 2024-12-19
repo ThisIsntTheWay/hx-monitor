@@ -19,7 +19,7 @@ const DisclaimerBox: React.FC<boxData> = ({onAck}) => {
     }
 
     return (
-        <div id="disclaimer-box" className="box disclaimer">
+        <div id="disclaimer-box" className="box popup disclaimer">
             <h1>ℹ️</h1>
             <h2>Experimental service</h2>
 
@@ -41,7 +41,7 @@ const DisclaimerBox: React.FC<boxData> = ({onAck}) => {
 
             By clicking on the thumbs up, you acknowledge to have read and understood the <a href="disclaimer.html">full disclaimer</a>.
             <p>
-                <button className="button" onClick={ackDisclaimer}>👍</button>
+                <button onClick={ackDisclaimer}>👍</button>
             </p>
         </div>
     )

@@ -6,6 +6,7 @@ import { LatLngTuple, } from 'leaflet';
 import { ApiResponseArea, fetchApiAreas, getStylingForFeature } from './utils/fetchApiData';
 import DisclaimerBox, { CheckIfDisclaimerMustBeShown } from './components/DisclaimerBox';
 import InfoBox from './components/InfoBox';
+import NavBar from './components/NavBar';
 
 const INTERLAKEN_COORDS: LatLngTuple = [46.6863, 7.8632]; // Lat, Lon
 
@@ -62,11 +63,11 @@ const App: React.FC = () => {
         </>
       )}
 
+      {/* Fetch box */}
       {(!apiAreaData || error || geoJsonError) && <div className="overlay gray"></div>}
-
       <div
         id="fetch-info-box"
-        className={`box ${(error || geoJsonError) ? 'error-box' : ''}`}
+        className={`box popup ${(error || geoJsonError) ? 'error' : ''}`}
         hidden={apiAreaData === null || geoJsonError !== null ? false : true}
       >
         <h3>
@@ -92,16 +93,21 @@ const App: React.FC = () => {
               ) : null}
             </p>
             <p>
-              {!isFetching && !geoJsonError && <button className="button" onClick={apiFetchAreas}>⟳</button>}
+              {!isFetching && !geoJsonError && <button  onClick={apiFetchAreas}>⟳</button>}
             </p>
           </div>
         </h3>
       </div>
 
+      {/* Area info box */}
       {featureState && apiAreaData && (<InfoBox
         apiAreaData={apiAreaData} feature={featureState} visibility={infoBoxVisibility} onClose={toggleInfoBoxVisibility}
       />)}
+
+      {/* NavBar */}
+      <NavBar />
       
+      {/* Map */}
       <div className={`${!apiAreaData || isFetching ? 'grayscale' : ''}`}>
         <MapContainer center={INTERLAKEN_COORDS} zoom={13} style={{ height: '100vh', width: '100%' }}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' />
@@ -127,7 +133,7 @@ const App: React.FC = () => {
             />
           )}
         </MapContainer>
-        </div>
+      </div>
     </div>
   );
 };

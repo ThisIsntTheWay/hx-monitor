@@ -115,8 +115,8 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
   if (!visibility) return null;
 
   return (
-    <div id="area-info-box" className={`box ${!resolvedArea?.LastActionSuccess ? "warning-box" : ''}`} hidden={!visibility}>
-      <button className="close-btn" onClick={onClose}>X</button>
+    <div id="area-info-box" className={`box popup${!resolvedArea?.LastActionSuccess ? "warning" : ''}`} hidden={!visibility}>
+      <button className="close" onClick={onClose}>X</button>
       {resolvedArea && !err ? (
         <>
           {/* Header */}
