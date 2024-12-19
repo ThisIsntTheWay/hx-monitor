@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
+import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
 import { LatLngTuple, } from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import { ApiResponseArea, fetchApiAreas, getStylingForFeature } from './utils/fetchApiData';
+import DisclaimerBox, { CheckIfDisclaimerMustBeShown } from './components/DisclaimerBox';
 import InfoBox from './components/InfoBox';
 
 const INTERLAKEN_COORDS: LatLngTuple = [46.6863, 7.8632]; // Lat, Lon
@@ -16,7 +17,18 @@ const App: React.FC = () => {
   const [geoJsonError, setGeoJsonError] = useState<string | null>(null);
   const [isFetching, setFetching] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [mustShowDisclaimer, setDisclaimerState] = useState<boolean>(false)
 
+  /* Disclaimer */
+  useEffect(() => {
+    setDisclaimerState(CheckIfDisclaimerMustBeShown)
+  }, [])
+
+  const handleDisclaimerAcknowledged = () => {
+    setDisclaimerState(false)
+  }
+
+  /* API fetching, box states */
   const toggleInfoBoxVisibility = () => {
     setInfoBoxVisibility(prevVisibility => !prevVisibility);
   };
@@ -30,6 +42,7 @@ const App: React.FC = () => {
       .catch((err) => setError(err.message))
       .finally(() => setFetching(false));
   };
+  useEffect(apiFetchAreas, []);
 
   // Get GeoJSON data
   useEffect(() => {
@@ -38,12 +51,18 @@ const App: React.FC = () => {
       .then(data => setGeoJsonData(data))
       .catch(err => setGeoJsonError(err.message));
   }, []);
-
-  useEffect(apiFetchAreas, []);
   
   return (
     <div className="App">
-      {(!apiAreaData || error || geoJsonError) && <div className="gray-overlay"></div>}
+      {/* Priority 1 item: Disclaimer box */}
+      {mustShowDisclaimer && CheckIfDisclaimerMustBeShown() && (
+        <>
+          <div className="overlay disclaimer" hidden={!mustShowDisclaimer}></div>
+          <DisclaimerBox onAck={handleDisclaimerAcknowledged} />
+        </>
+      )}
+
+      {(!apiAreaData || error || geoJsonError) && <div className="overlay gray"></div>}
 
       <div
         id="fetch-info-box"

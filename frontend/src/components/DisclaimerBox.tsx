@@ -1,29 +1,31 @@
-import React, { useEffect, useState } from 'react';
-
 /* Box */
 interface boxData {
-    visibility: boolean,
+    onAck: any,
 };
 
-// Acknowledge disclaimer box; Permanently hiding it
-const ackDisclaimer = (): boolean => {
-    return true;
-}
+const lsDisclaimerItemName = "disclaimer_shown";
 
 // Check if disclaimer box must be shown, i.e. first time visiting user
 export const CheckIfDisclaimerMustBeShown = (): boolean => {
-    return false;
+    let lsDisclaimerValue = localStorage.getItem(lsDisclaimerItemName); 
+    return lsDisclaimerValue === null || lsDisclaimerValue !== 'true';
 }
 
-const DisclaimerBox: React.FC<boxData> = ({visibility}) => {
+const DisclaimerBox: React.FC<boxData> = ({onAck}) => {
+    // Acknowledge disclaimer box; Permanently hiding it
+    const ackDisclaimer = () => {
+        localStorage.setItem(lsDisclaimerItemName, 'true');
+        onAck();
+    }
+
     return (
-        <div id="disclaimer-box" className="box disclaimer" hidden={!visibility}>
+        <div id="disclaimer-box" className="box disclaimer">
             <h1>ℹ️</h1>
             <h2>Experimental service</h2>
 
             <p>
                 This website shows a map of CTRs/TMAs of type HX and whether or not they are active.<br/>
-                To determine activeness of an area, the audio tape of the corresponding zone is <em>regularly called</em>.<br/>
+                To determine if an area is activated, the audio tape of the corresponding zone gets regularly called.<br/>
                 The call will then be <em>machine transcribed</em> and parsed accordingly.
             </p>
             <p>
@@ -32,13 +34,15 @@ const DisclaimerBox: React.FC<boxData> = ({visibility}) => {
             </p>
             <p>
                 <strong>
-                    If in doubt, always consult the audio tape of an area directly!
+                    If in doubt, always consult the audio tape of an area directly!<br/>
                     Do not solely rely on this service for any flight planning activities.
                 </strong>
             </p>
 
             By clicking on the thumbs up, you acknowledge to have read and understood the <a href="disclaimer.html">full disclaimer</a>.
-            <button className="button" onClick={ackDisclaimer}>👍</button>
+            <p>
+                <button className="button" onClick={ackDisclaimer}>👍</button>
+            </p>
         </div>
     )
 }
