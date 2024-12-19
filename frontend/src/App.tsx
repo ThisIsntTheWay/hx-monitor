@@ -63,8 +63,11 @@ const App: React.FC = () => {
         </>
       )}
 
-      {/* Fetch box */}
+      {/* Overlays */}
       {(!apiAreaData || error || geoJsonError) && <div className="overlay gray"></div>}
+      {infoBoxVisibility && <div className="overlay blur" onClick={() => setInfoBoxVisibility(false)}></div>}
+
+      {/* Fetch box */}
       <div
         id="fetch-info-box"
         className={`box popup ${(error || geoJsonError) ? 'error' : ''}`}
