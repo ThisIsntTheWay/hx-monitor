@@ -109,9 +109,11 @@ h4 {
 
   height: 65px;
   transform: translateY(-5px);
-  bottom: 15px;
-  left: 5px;
-  right: 5px;
+
+  --distance: 15px;
+  bottom: var(--distance);
+  left: var(--distance);
+  right: var(--distance);
 }
 .box.nav button {
   /* Narrower button */
