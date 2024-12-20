@@ -170,25 +170,26 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
 
           {/* Transcript */}
           <hr/>
-          {apiTranscriptData ? (
-            <p>
-              {apiTranscriptData.data.transcript ? (
-                <span className="transcript-string">
-                  "{apiTranscriptData.data.transcript}"
-                </span>
-              ) : (
-                "❌ Transcript unavailable"
-              )}
-            </p>
-          ) : (
-            <div>
-              {!err ? (
-                <p><span className="clock-spinner"></span> Fetching...</p>
-              ) : (
-                <p>❌ Could not fetch transcript: {err}</p>
-              )}
-            </div>
-          )}
+          📞
+          <span className="transcript-string">
+            {apiTranscriptData ? (
+              <>
+                {apiTranscriptData.data.transcript ? (
+                  <>💬 "{apiTranscriptData.data.transcript}"</>
+                ) : (
+                  <>❌ <em>No transcript was returned</em></>
+                )}
+              </>
+            ) : (
+              <>
+                {!err ? (
+                  <><span className="clock-spinner"></span> <em>Fetching Transcript...</em></>
+                ) : (
+                  <>❌ <em>Could not fetch transcript:</em> <strong>{err}</strong></>
+                )}
+              </>
+            )}
+          </span>
           </div>
           {/* END OF BOX CONTENTS */}
         </>
