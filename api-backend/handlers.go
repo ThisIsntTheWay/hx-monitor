@@ -83,22 +83,21 @@ func getAreaByName(w http.ResponseWriter, r *http.Request) {
 // Gets the latest transcript for a given area
 func getTranscriptsLatest(w http.ResponseWriter, r *http.Request) {
 	logResponse(r)
-	areaName := mux.Vars(r)["name"]
 
+	areaName := mux.Vars(r)["name"]
 	transcripts, err := db.Aggregate[transcriptAggregation](
 		"hx_areas",
 		getTranscriptAggregationPipeline(areaName, []bson.D{
-			bson.D{
+			{
 				{"$sort", bson.D{
 					{"related_transcripts.date", -1},
 				}},
 			},
-			bson.D{{"$limit", 1}},
+			{{"$limit", 1}},
 		}),
 	)
 
 	response := handleTranscripts(transcripts, err, areaName, w)
-
 	res, _ := json.Marshal(response)
 	fmt.Fprint(w, string(res))
 }
