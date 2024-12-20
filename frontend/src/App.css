@@ -9,6 +9,16 @@
   text-align: center;
 }
 
+/* --- Map --- */
+.marker-dot .blue-dot {
+  background-color: #3388ff; 
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  border: 3px solid white;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
 /* --- Overlays --- */
 .overlay {
   position: fixed;
@@ -198,13 +208,13 @@ button:focus {
 
 /* Disabled */
 button:disabled {
-  opacity: 0.6;
-  background-color: var(--error-color-light);
+  filter: grayscale(100%);
+  background-color: unset;
   cursor: not-allowed;
 }
 button:disabled:hover,
 button:disabled:active {
-  background-color: var(--error-color-light);
+  background-color: unset;
   transition: unset;
   transform: unset;
 }
