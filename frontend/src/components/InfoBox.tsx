@@ -115,7 +115,7 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
   if (!visibility) return null;
 
   return (
-    <div id="area-info-box" className={`box popup${!resolvedArea?.LastActionSuccess ? "warning" : ''}`} hidden={!visibility}>
+    <div className={`box popup${!resolvedArea?.LastActionSuccess ? "warning" : ''}`} hidden={!visibility}>
       <button className="close" onClick={onClose}>❌</button>
       {resolvedArea && !err ? (
         <>
@@ -132,6 +132,7 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
             )}
           </p>
 
+          <div className="scrollable">
           {/* Flight operating hours */}
           {resolvedArea.FlightOperatingHours ? (
             <>
@@ -150,11 +151,13 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
           {/* SubAreas */}
           {resolvedArea.LastActionSuccess ? (
             <div>
+              {/*
               {resolvedArea.SubAreas.map((subArea, i) => (
                 <p key={i}>
                   <strong>{subArea.Fullname}</strong> {(resolvedArea.LastActionSuccess && !subArea.Active) ? "🟢" : "🔴"}<br/>
                 </p>
               ))}
+                */}
             </div>
           ) : (
             <div>
@@ -167,15 +170,14 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
 
           {/* Transcript */}
           <hr/>
-          <h3><strong>Transcript</strong></h3>
           {apiTranscriptData ? (
             <p>
               {apiTranscriptData.data.transcript ? (
                 <span className="transcript-string">
-                  {apiTranscriptData.data.transcript}
+                  "{apiTranscriptData.data.transcript}"
                 </span>
               ) : (
-                <strong>❌ Unavailable</strong>
+                "❌ Transcript unavailable"
               )}
             </p>
           ) : (
@@ -183,10 +185,12 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
               {!err ? (
                 <p><span className="clock-spinner"></span> Fetching...</p>
               ) : (
-                <p>❌ Could not fetch: {err}</p>
+                <p>❌ Could not fetch transcript: {err}</p>
               )}
             </div>
           )}
+          </div>
+          {/* END OF BOX CONTENTS */}
         </>
       ) : (
         <p>{err || "Loading..."}</p>
