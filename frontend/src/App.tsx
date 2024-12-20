@@ -1,15 +1,33 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
-import { LatLngTuple, } from 'leaflet';
+import { MapContainer, TileLayer, GeoJSON, Marker, } from 'react-leaflet';
+import L, { LatLngTuple, LatLngBounds } from 'leaflet';
 import { ApiResponseArea, fetchApiAreas, getStylingForFeature } from './utils/fetchApiData';
 import DisclaimerBox, { CheckIfDisclaimerMustBeShown } from './components/DisclaimerBox';
 import InfoBox from './components/InfoBox';
 import NavBar from './components/NavBar';
 
+/* Map positioning */
 const INTERLAKEN_COORDS: LatLngTuple = [46.6863, 7.8632]; // Lat, Lon
+interface UserPosition {
+  lat: number;
+  lng: number;
+}
 
+const userLocationIcon = L.divIcon({
+  className: 'marker-dot',
+  html: '<div class="blue-dot"></div>',
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
+});
+
+const switzerlandBounds = new LatLngBounds(
+  [45.8, 5.8], // SW
+  [47.8, 10.5] // NE
+);
+
+/* MAIN */
 const App: React.FC = () => {
   const [geoJsonData, setGeoJsonData] = useState<any>(null);
   const [apiAreaData, setApiAreaData] = useState<ApiResponseArea | null>(null);
@@ -18,16 +36,50 @@ const App: React.FC = () => {
   const [geoJsonError, setGeoJsonError] = useState<string | null>(null);
   const [isFetching, setFetching] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [mustShowDisclaimer, setDisclaimerState] = useState<boolean>(false)
+  const [mustShowDisclaimer, setDisclaimerState] = useState<boolean>(false);
+
+  const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
+  const [canGetUserPos, setCanGetUserPos] = useState<boolean>(false);
+  const [hasUserPosFix, setHasUserPosFix] = useState<boolean>(false);
+  const [map, setMap] = useState<L.Map | null>(null)
+
+  /* Map functions */
+  const zoomOnLocation = (position: UserPosition) => {
+    if (map) {
+      map.setView([position.lat, position.lng], 11);
+    }
+  };
+  
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCanGetUserPos(true);
+          setHasUserPosFix(true);
+          setUserPosition({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          setCanGetUserPos(false);
+          setHasUserPosFix(error.code === error.POSITION_UNAVAILABLE)
+          console.error('Error getting user location:', error);
+        }
+      );
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   /* Disclaimer */
   useEffect(() => {
     setDisclaimerState(CheckIfDisclaimerMustBeShown)
-  }, [])
+  }, []);
 
   const handleDisclaimerAcknowledged = () => {
-    setDisclaimerState(false)
-  }
+    setDisclaimerState(false);
+  };
 
   /* API fetching, box states */
   const toggleInfoBoxVisibility = () => {
@@ -108,15 +160,35 @@ const App: React.FC = () => {
       />)}
 
       {/* NavBar */}
-      <NavBar />
+      <NavBar
+        refetchEvent={apiFetchAreas}
+        isFetching={isFetching}
+
+        canGetUserPos={canGetUserPos}
+        localizeEvent={() => {if (userPosition) zoomOnLocation(userPosition)}}
+        hasPositionFix={hasUserPosFix}
+      />
       
       {/* Map */}
       <div className={`${!apiAreaData || isFetching ? 'grayscale' : ''}`}>
-        <MapContainer center={INTERLAKEN_COORDS} zoom={13} style={{ height: '100vh', width: '100%' }}>
+        <MapContainer
+          ref={setMap}
+          center={userPosition ? userPosition : INTERLAKEN_COORDS}
+          zoom={10}
+          style={{ height: '100vh', width: '100%' }}
+          maxBounds={switzerlandBounds}
+          maxBoundsViscosity={1.0}
+          maxZoom={13}
+        >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
+
+          {/* Positioning */}
+          {userPosition && (
+            <Marker position={userPosition} icon={userLocationIcon} />
+          )}
           
           {/* Render GeoJSON data */}
           {apiAreaData && geoJsonData && (
