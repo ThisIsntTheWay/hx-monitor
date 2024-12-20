@@ -108,6 +108,8 @@ h4 {
   justify-content: space-evenly;
 
   height: 65px;
+  margin-inline: auto;
+  max-width: 300px;
   transform: translateY(-5px);
 
   --distance: 15px;
@@ -121,6 +123,13 @@ h4 {
   font-size: 36px;
   border-radius: 100%;
   align-self: center;
+}
+
+/* Landscape styling */
+@media (orientation: landscape) {
+  .box.nav {
+    transform: translateX(0) translateY(0);
+  }
 }
 
 /* Other box types */
@@ -191,16 +200,16 @@ button {
   border-radius: 10px;
   font-size: 30px;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
+  transition: background-color 0.1s ease /*, transform 0.05s ease*/;
 }
 
 button:hover {
-  background-color: rgba(56, 86, 255, 0.2);
+  background-color: rgba(56, 159, 255, 0.2);
 }
 
 button:active {
-  background-color: rgba(56, 86, 255, 0.3);
-  transform: scale(0.98);
+  background-color: rgba(56, 159, 255, 0.377);
+  transform: scale(0.9);
 }
 
 button:focus {
@@ -217,10 +226,11 @@ button.close {
   top: 10px;
   right: 10px;
   background: none;
+  background-color: rgba(255, 56, 56, 0.103);
   border: none;
 }
 button.close:hover {
-  background-color: rgba(255, 56, 56, 0.2);
+  background-color: rgba(255, 56, 56, 0.24);
 }
 button.close:active {
   background-color: rgba(255, 56, 56, 0.548);  
