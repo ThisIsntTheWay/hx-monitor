@@ -1,3 +1,12 @@
+:root {
+  --warning-color: rgb(255, 200, 0);
+  --warning-color-light: rgb(250, 242, 212);
+  --error-color: rgb(255, 0, 0);
+  --error-color-light: rgb(255, 236, 236);
+  --info-color: rgb(0, 119, 255);
+  --info-color-light: rgb(236, 245, 255);
+}
+
 .App {
   text-align: center;
 }
@@ -133,20 +142,20 @@ h4 {
 }
 
 /* Other box types */
-.box.disclaimer {
-  background-color: rgb(236, 245, 255);
-  border-color: rgb(0, 119, 255);
+.box.info {
+  background-color: var(--info-color-light);
+  border-color: var(--info-color);
   z-index: 9999;
 }
 
 .box.error {
-  background-color: rgb(255, 236, 236);
-  border-color: rgb(255, 0, 0);
+  background-color: var(--error-color-light);
+  border-color: var(--error-color);
 }
 
 .box.warning {
-  background-color: rgb(250, 242, 212);
-  border-color: rgb(255, 200, 0);
+  background-color: var(--warning-color-light);
+  border-color: var(--warning-color);
 }
 
 .time-string {
@@ -214,6 +223,19 @@ button:active {
 
 button:focus {
   outline: none;
+}
+
+/* Disabled */
+button:disabled {
+  opacity: 0.6;
+  background-color: var(--error-color-light);
+  cursor: not-allowed;
+}
+button:disabled:hover,
+button:disabled:active {
+  background-color: var(--error-color-light);
+  transition: unset;
+  transform: unset;
 }
 
 /* Close button */

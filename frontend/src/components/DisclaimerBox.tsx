@@ -19,7 +19,7 @@ const DisclaimerBox: React.FC<boxData> = ({onAck}) => {
     }
 
     return (
-        <div id="disclaimer-box" className="box popup disclaimer">
+        <div className="box popup info">
             <h1>ℹ️</h1>
             <h2>Experimental service</h2>
 
