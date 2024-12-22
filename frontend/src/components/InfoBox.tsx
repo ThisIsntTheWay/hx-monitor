@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Feature, Geometry } from 'geojson';
 import {
   ApiResponseArea, ApiResponseTranscript, Area,
   resolveAreaFromFeature, fetchApiTranscript
@@ -7,9 +8,9 @@ import {
 /* Box */
 interface boxData {
   apiAreaData: ApiResponseArea | null,
-  feature: any,
+  feature: Feature<Geometry>,
   visibility: boolean,
-  onClose: any,
+  onClose: () => void,
 }
 
 // Checks if current time is during active flight operation hours
@@ -175,7 +176,7 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
             {apiTranscriptData ? (
               <>
                 {apiTranscriptData.data.transcript ? (
-                  <>💬 "{apiTranscriptData.data.transcript}"</>
+                  <>💬 &quot;{apiTranscriptData.data.transcript}&quot;</>
                 ) : (
                   <>❌ <em>No transcript was returned</em></>
                 )}

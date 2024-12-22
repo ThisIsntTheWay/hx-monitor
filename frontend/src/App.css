@@ -111,13 +111,12 @@ h4 {
   /* Narrower button */
   padding: 3px 5px;
   font-size: 36px;
-  border-radius: 100%;
+  border-radius: 15px;
   align-self: center;
 }
 
 .nav-button-error-descriptor {
   font-size: 20px;
-  padding-left: 1px;
 }
 
 /* Landscape styling */

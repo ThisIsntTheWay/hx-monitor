@@ -1,22 +1,24 @@
+import React from 'react';
+
 /* Box */
 interface boxData {
-    onAck: any,
+    onAck: () => void,
 };
 
 const lsDisclaimerItemName = "disclaimer_shown";
 
 // Check if disclaimer box must be shown, i.e. first time visiting user
 export const CheckIfDisclaimerMustBeShown = (): boolean => {
-    let lsDisclaimerValue = localStorage.getItem(lsDisclaimerItemName); 
+    const lsDisclaimerValue = localStorage.getItem(lsDisclaimerItemName); 
     return lsDisclaimerValue === null || lsDisclaimerValue !== 'true';
-}
+};
 
 const DisclaimerBox: React.FC<boxData> = ({onAck}) => {
     // Acknowledge disclaimer box; Permanently hiding it
     const ackDisclaimer = () => {
         localStorage.setItem(lsDisclaimerItemName, 'true');
         onAck();
-    }
+    };
 
     return (
         <div className="box popup info">
@@ -44,7 +46,7 @@ const DisclaimerBox: React.FC<boxData> = ({onAck}) => {
                 <button onClick={ackDisclaimer}>👍</button>
             </p>
         </div>
-    )
-}
+    );
+};
 
 export default DisclaimerBox;

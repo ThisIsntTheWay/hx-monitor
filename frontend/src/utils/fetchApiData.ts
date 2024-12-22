@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { Feature, Geometry } from 'geojson';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 if (!API_BASE_URL) {
@@ -41,7 +42,13 @@ export interface ApiResponseTranscript {
 export const fetchApiAreas = async (): Promise<ApiResponseArea> => {
     try {
         const response = await axios.get(`${API_BASE_URL}/api/v1/areas`);
-        return response.data;
+        if (response.data) {
+            return response.data;
+        }
+        console.error("Malformed data when fetching API:", response);
+        throw new Error("Malformed data");
+
+    // eslint-disable-next-line  @typescript-eslint/no-explicit-any
     } catch (error: any) {
         throw new Error(error.response?.data?.message || error.message || 'Unknown error occurred');
     }
@@ -50,7 +57,13 @@ export const fetchApiAreas = async (): Promise<ApiResponseArea> => {
 export const fetchApiTranscript = async (area: string): Promise<ApiResponseTranscript> => {
     try {
         const response = await axios.get(`${API_BASE_URL}/api/v1/transcripts/${area}/latest`);
-        return response.data;
+        if (response?.data) {
+            return response.data;
+        }
+        console.error("Malformed data when fetching API:", response);
+        throw new Error("Malformed data");
+
+    // eslint-disable-next-line  @typescript-eslint/no-explicit-any
     } catch (error: any) {
         throw new Error(error.response?.data?.message || error.message || 'Unknown error occurred');
     }
@@ -62,21 +75,21 @@ interface FeatureStyling {
 }
 
 // Returns a matching SubArea for a given feature
-const resolveSubAreaFromFeature = (feature: any, apiData: ApiResponseArea): SubArea | undefined => {
+const resolveSubAreaFromFeature = (feature: Feature<Geometry>, apiData: ApiResponseArea): SubArea | undefined => {
     const resolvedArea = resolveAreaFromFeature(feature, apiData);
     const matchingSubArea = resolvedArea?.SubAreas.find(subArea => {
-        return subArea.Fullname === feature.properties.Name;
+        return subArea.Fullname === feature?.properties?.Name;
     });
     if (matchingSubArea === undefined) {
-        console.error("Could not resolve SubArea based on feature name:", feature.properties.Name);
+        console.error("Could not resolve SubArea based on feature name:", feature?.properties?.Name);
     }
 
     return matchingSubArea;
 };
 
   // Resolves a matching Area for a given feature
-export const resolveAreaFromFeature = (feature: any, apiData: ApiResponseArea | null): Area => {
-    const candidateName = feature.properties.Name.split(" ")[1].toLowerCase();
+export const resolveAreaFromFeature = (feature: Feature<Geometry>, apiData: ApiResponseArea | null): Area => {
+    const candidateName = feature?.properties?.Name.split(" ")[1].toLowerCase();
     const matchingArea = apiData?.data?.find(area => {
         return area.Name === candidateName;
     });
@@ -105,13 +118,13 @@ export const resolveAreaFromFeature = (feature: any, apiData: ApiResponseArea | 
 };
 
 // Returns a color for a feature based on its corresponding SubAreas activeness
-export const getStylingForFeature = (feature: any, apiData: ApiResponseArea): FeatureStyling => {
+export const getStylingForFeature = (feature: Feature<Geometry> | undefined, apiData: ApiResponseArea): FeatureStyling => {
     const featureStyling: FeatureStyling = {
         Color: "yellow",
         Opacity: 1
     };
 
-    if (!apiData) {
+    if (!apiData || feature === undefined) {
         featureStyling.Color = "gray";
         return featureStyling;
     }

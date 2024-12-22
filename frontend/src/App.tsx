@@ -3,16 +3,21 @@ import './App.css';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, GeoJSON, Marker, } from 'react-leaflet';
 import L, { LatLngTuple, LatLngBounds } from 'leaflet';
+import { Feature, Geometry, GeoJsonObject } from 'geojson';
 import { ApiResponseArea, fetchApiAreas, getStylingForFeature } from './utils/fetchApiData';
 import DisclaimerBox, { CheckIfDisclaimerMustBeShown } from './components/DisclaimerBox';
 import InfoBox from './components/InfoBox';
 import NavBar from './components/NavBar';
 
 /* Map positioning */
-const INTERLAKEN_COORDS: LatLngTuple = [46.6863, 7.8632]; // Lat, Lon
 interface UserPosition {
   lat: number;
   lng: number;
+}
+interface UserAltitudeAndHeading {
+  alt: number | null;
+  altAcc: number | null;
+  hdn: number | null;
 }
 
 const userLocationIcon = L.divIcon({
@@ -22,6 +27,7 @@ const userLocationIcon = L.divIcon({
   iconAnchor: [15, 15],
 });
 
+const INTERLAKEN_COORDS: LatLngTuple = [46.6863, 7.8632];
 const switzerlandBounds = new LatLngBounds(
   [45.8, 5.8], // SW
   [47.8, 10.5] // NE
@@ -29,19 +35,21 @@ const switzerlandBounds = new LatLngBounds(
 
 /* MAIN */
 const App: React.FC = () => {
-  const [geoJsonData, setGeoJsonData] = useState<any>(null);
   const [apiAreaData, setApiAreaData] = useState<ApiResponseArea | null>(null);
-  const [infoBoxVisibility, setInfoBoxVisibility] = useState<boolean>(false);
-  const [featureState, setFeatureState] = useState<any>(null);
-  const [geoJsonError, setGeoJsonError] = useState<string | null>(null);
   const [isFetching, setFetching] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [geoJsonData, setGeoJsonData] = useState<GeoJsonObject | null>(null);
+  const [geoJsonError, setGeoJsonError] = useState<string | null>(null);
+
   const [mustShowDisclaimer, setDisclaimerState] = useState<boolean>(false);
+  const [infoBoxVisibility, setInfoBoxVisibility] = useState<boolean>(false);
+  const [featureState, setFeatureState] = useState<Feature<Geometry> | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
+  const [userAltitudeAndHeading, setUserAltitudeAndHeading] = useState<UserAltitudeAndHeading | null>(null);
   const [canGetUserPos, setCanGetUserPos] = useState<boolean>(false);
   const [hasUserPosFix, setHasUserPosFix] = useState<boolean>(false);
-  const [map, setMap] = useState<L.Map | null>(null)
+  const [map, setMap] = useState<L.Map | null>(null);
 
   /* Map functions */
   const zoomOnLocation = (position: UserPosition) => {
@@ -60,10 +68,15 @@ const App: React.FC = () => {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           });
+          setUserAltitudeAndHeading({
+            alt: position.coords.altitude,
+            altAcc: position.coords.altitudeAccuracy,
+            hdn: position.coords.heading,
+          });
         },
         (error) => {
           setCanGetUserPos(false);
-          setHasUserPosFix(error.code === error.POSITION_UNAVAILABLE)
+          setHasUserPosFix(error.code === error.POSITION_UNAVAILABLE);
           console.error('Error getting user location:', error);
         }
       );
@@ -72,9 +85,13 @@ const App: React.FC = () => {
     return () => clearInterval(intervalId);
   }, []);
 
+  useEffect(() => {
+    console.log(userAltitudeAndHeading);
+  }, [userAltitudeAndHeading]);
+
   /* Disclaimer */
   useEffect(() => {
-    setDisclaimerState(CheckIfDisclaimerMustBeShown)
+    setDisclaimerState(CheckIfDisclaimerMustBeShown);
   }, []);
 
   const handleDisclaimerAcknowledged = () => {
@@ -100,7 +117,12 @@ const App: React.FC = () => {
   // Get GeoJSON data
   useEffect(() => {
     fetch('/shv_airspaces_processed.json')
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
       .then(data => setGeoJsonData(data))
       .catch(err => setGeoJsonError(err.message));
   }, []);
@@ -165,7 +187,7 @@ const App: React.FC = () => {
         isFetching={isFetching}
 
         canGetUserPos={canGetUserPos}
-        localizeEvent={() => {if (userPosition) zoomOnLocation(userPosition)}}
+        localizeEvent={() => {if (userPosition) zoomOnLocation(userPosition);}}
         hasPositionFix={hasUserPosFix}
       />
       

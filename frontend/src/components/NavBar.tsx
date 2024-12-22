@@ -12,16 +12,16 @@ const NavBar: React.FC<NavBarProps> = ({
     refetchEvent, isFetching,
     localizeEvent, canGetUserPos, hasPositionFix
 }) => {
-    const [btnDisabled, setBtnDisabled] = useState<boolean>(false)
+    const [btnDisabled, setBtnDisabled] = useState<boolean>(false);
     
     const fireRefreshApiEvent = () => {
         // To prevent API request spam, the button will always remain disabled for a set amount of time
-        setBtnDisabled(true)
-        refetchEvent()
+        setBtnDisabled(true);
+        refetchEvent();
         setTimeout(() => {
-            setBtnDisabled(false)
-        }, 5000)
-    }
+            setBtnDisabled(false);
+        }, 5000);
+    };
     
     return (
         <div className="box nav">
@@ -56,7 +56,7 @@ const NavBar: React.FC<NavBarProps> = ({
             {/* Help */}
             <button>❓</button>
         </div>
-    )
-}
+    );
+};
 
 export default NavBar;
