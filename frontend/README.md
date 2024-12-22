@@ -1,6 +1,11 @@
 # Frontend
 Frontend component of HX monitor.
 
+## Building
+```bash
+npx eslint . && npm run build
+```
+
 ## Testing
 ```bash
 # API located at ../api-export
