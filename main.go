@@ -89,7 +89,7 @@ func main() {
 	var lastExecTime time.Time = time.Now()
 	for {
 		nextActionableTime := getNearestNextActionTime()
-		slog.Debug("MAIN",
+		slog.Info("MAIN",
 			"action", "compareActionTimes",
 			"nextActionableTime", nextActionableTime,
 			"lastExecTime", lastExecTime,
