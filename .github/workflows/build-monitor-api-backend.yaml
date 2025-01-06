@@ -8,9 +8,10 @@ on:
 
 jobs:
   build-and-push-image:
-    uses: .github/workflows/dockerhub-callable.yaml
-    with:
-      image: 'hx-monitor-api'
-      context: ./api-backend
-    secrets:
-      DOCKER_HUB_SECRET: ${{ secrets.DOCKER_HUB_SECRET }}
+    - uses: actions/checkout@v4
+    - uses: ./.github/workflows/dockerhub-callable.yaml
+      with:
+        image: 'hx-monitor-backend'
+        context: .
+      secrets:
+        DOCKER_HUB_SECRET: ${{ secrets.DOCKER_HUB_SECRET }}

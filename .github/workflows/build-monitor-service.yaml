@@ -14,9 +14,11 @@ on:
 
 jobs:
   build-and-push-image:
-    uses: .github/workflows/dockerhub-callable.yaml
-    with:
-      image: 'hx-monitor-service'
-      context: .
-    secrets:
-      DOCKER_HUB_SECRET: ${{ secrets.DOCKER_HUB_SECRET }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: ./.github/workflows/dockerhub-callable.yaml
+      with:
+        image: 'hx-monitor-service'
+        context: .
+      secrets:
+        DOCKER_HUB_SECRET: ${{ secrets.DOCKER_HUB_SECRET }}
