@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-push-image:
-    uses: ./.github/workflows/dockerhub-callable.yml
+    uses: .github/workflows/dockerhub-callable.yaml
     with:
       image: 'hx-monitor-api'
       context: ./api-backend
