@@ -13,4 +13,4 @@ jobs:
     secrets: inherit
     with:
       image: 'hx-monitor-api-backend'
-      context: .
+      context: ./api-backend
