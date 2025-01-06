@@ -342,7 +342,9 @@ func ParseTranscript(transcript string, referenceTime time.Time) (models.Airspac
 
 	if nextUpdateTime.Equal(time.Unix(0, 0)) {
 		return airspaceState, fmt.Errorf("Was unable to parse NextUpdate")
-	} else {
-		return airspaceState, nil
+	} else if nextUpdateTime.Before(time.Now()) {
+		return airspaceState, fmt.Errorf("Now is past reported next update time")
 	}
+
+	return airspaceState, nil
 }
