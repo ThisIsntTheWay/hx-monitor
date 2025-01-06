@@ -4,14 +4,13 @@ on:
   push:
     paths:
       - 'api-backend/**'
+      - '!.github/**'
       - '!*.md'
 
 jobs:
   build-and-push-image:
-    - uses: actions/checkout@v4
-    - uses: ./.github/workflows/dockerhub-callable.yaml
-      with:
-        image: 'hx-monitor-backend'
-        context: .
-      secrets:
-        DOCKER_HUB_SECRET: ${{ secrets.DOCKER_HUB_SECRET }}
+    uses: ./.github/workflows/dockerhub-callable.yaml
+    secrets: inherit
+    with:
+      image: 'hx-monitor-api-backend'
+      context: .

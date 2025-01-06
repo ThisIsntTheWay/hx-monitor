@@ -11,9 +11,6 @@ on:
         description: 'Dockerfile context'
         required: true
         type: string
-    secrets:
-      DOCKER_HUB_SECRET:
-        required: true
 
 jobs:
   build:
