@@ -23,9 +23,10 @@ TWILIO_PARTIAL_TRANSCRIPTIONS=0 # bool, if set to true will instruct Twilio to s
                                 # Useful for scenarios where Twilio would only send a single transcribed sentence
                                 # Will quickly result in HTTP 429 errors when using ngrok!
 
-WHISPER_MODEL=tiny.en       # Whisper model to use
-WHISPER_DO_MODEL_DOWNLOAD=1 # If WHISPER_MODEL was not found in ./models, attempt download from HuggingFace
-                            # Only supports models hosted in repository 'ggerganov/whisper.cpp'
+WHISPER_MODEL=tiny.en                 # Whisper model to use
+WHISPER_MODELS_PATH=./models_whisper  # File path to whisper models
+WHISPER_DO_MODEL_DOWNLOAD=1           # If WHISPER_MODEL was not found in ./models, attempt download from HuggingFace
+                                      # Only supports models hosted in repository 'ggerganov/whisper.cpp'
 
 TWILIO_CALL_LENGTH=30 # In seconds
                       # English transcripts may take up to 38 seconds, e.g. Meiringen

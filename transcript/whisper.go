@@ -20,7 +20,7 @@ import (
 // File path of whisper model
 var _whisperModel string
 
-const whisperModelsFilePath = "./models_whisper"
+var whisperModelsFilePath string
 
 func init() {
 	for _, program := range []string{"ffmpeg", "ffprobe"} {
@@ -42,6 +42,11 @@ func init() {
 			logger.LogErrorFatal("WHISPER", "WHISPER_MODEL is unset")
 		}
 		_whisperModel, _ = getWhisperModel(whisperModel)
+
+		whisperModelsFilePath, exists = os.LookupEnv("WHISPER_MODELS_PATH")
+		if !exists {
+			whisperModelsFilePath = "./models_whisper"
+		}
 	}
 }
 
