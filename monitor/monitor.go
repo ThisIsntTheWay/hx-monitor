@@ -36,6 +36,7 @@ var _areaFailureCounts map[string]int8 = make(map[string]int8)
 var _areaProcessingQueue map[string]bool = make(map[string]bool)
 
 var maxFailsPerArea int8 = 3
+var onErrorNextActionDelay time.Duration = 30 * time.Minute
 
 func init() {
 	// Looks up and returns an env vars value as bool. Returns s otherwise.
@@ -179,7 +180,9 @@ func areasNumberIsBeingCalled(area models.HXArea) (bool, error) {
 func incrementAreaFails(areaName string) int8 {
 	v, ok := _areaFailureCounts[areaName]
 	if ok {
-		_areaFailureCounts[areaName] = v + 1
+		if v < maxFailsPerArea {
+			_areaFailureCounts[areaName] = v + 1
+		}
 	} else {
 		_areaFailureCounts[areaName] = 1
 	}
@@ -254,6 +257,19 @@ func MonitorHxAreas() {
 							"skip", true,
 						)
 						continue
+					} else {
+						// Delay processing for X amount of time on next run
+						newNextAction := time.Now().Add(onErrorNextActionDelay)
+						err := db.UpdateDocument(
+							"hx_areas",
+							bson.M{"_id": hxArea.ID},
+							bson.D{{"$set",
+								bson.D{{"next_action", newNextAction}},
+							}},
+						)
+						if err != nil {
+							slog.Error("MONITOR", "action", "delayNextAction", "error", err)
+						}
 					}
 				}
 
