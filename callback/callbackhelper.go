@@ -82,7 +82,7 @@ func setBadHxStatus(referenceArea string, errorReason string) error {
 	var subAreas []models.HXSubArea
 	for _, area := range referenceAreaObj[0].SubAreas {
 		subAreas = append(subAreas, models.HXSubArea{
-			Fullname: area.Fullname,
+			FullName: area.FullName,
 			Name:     area.Name,
 			Active:   true,
 		})
@@ -127,7 +127,7 @@ func createHxSubAreas(airspaceStatus models.AirspaceStatus, referenceArea string
 
 		name := strings.Replace(strings.ToLower(fullName), " ", "-", -1)
 
-		subArea.Fullname = fullName
+		subArea.FullName = fullName
 		subArea.Name = name
 		subArea.Active = area.Active
 
