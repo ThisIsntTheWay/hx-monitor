@@ -3,17 +3,20 @@ name: Monitor service docker build
 on:
   push:
     paths:
+      - '.'
       - '!frontend/**'
       - '!api-backend/**'
       - '!*.txt'
       - '!*.md'
       - '!.gitignore'
       - '!tests/**'
+  workflow_dispatch:
 
 jobs:
   build-and-push-image:
     uses: ./.github/workflows/dockerhub-callable.yml
     with:
       image: 'hx-monitor-service'
+      context: .
     secrets:
       DOCKER_HUB_SECRET: ${{ secrets.DOCKER_HUB_SECRET }}

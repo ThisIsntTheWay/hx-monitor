@@ -7,9 +7,10 @@ on:
       - '!*.md'
 
 jobs:
-  use-build-and-push:
+  build-and-push-image:
     uses: ./.github/workflows/dockerhub-callable.yml
     with:
       image: 'hx-monitor-api'
+      context: ./api-backend
     secrets:
       DOCKER_HUB_SECRET: ${{ secrets.DOCKER_HUB_SECRET }}
