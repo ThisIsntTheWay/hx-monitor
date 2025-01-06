@@ -196,6 +196,14 @@ func removeAreaFails(areaName string) {
 	if exists {
 		delete(_areaFailureCounts, areaName)
 	}
+
+	db.UpdateDocument(
+		"hx_areas",
+		bson.M{"name": areaName},
+		bson.D{{"$set",
+			bson.D{{"num_errors", 0}},
+		}},
+	)
 }
 
 // Call a number and either start transcription or recording
@@ -232,6 +240,7 @@ func MonitorHxAreas() {
 			"area", hxArea.Name,
 			"nextAction", hxArea.NextAction,
 			"numberName", hxArea.NumberName,
+			"numErrors", hxArea.NumErrors,
 			"mustActNow", mustActNow,
 			"lastActionSuccess", hxArea.LastActionSuccess,
 		)
@@ -247,6 +256,13 @@ func MonitorHxAreas() {
 			if !b {
 				if !hxArea.LastActionSuccess {
 					areaFails := incrementAreaFails(hxArea.Name)
+					db.UpdateDocument(
+						"hx_areas",
+						bson.M{"_id": hxArea.ID},
+						bson.D{{"$set",
+							bson.D{{"num_errors", areaFails}},
+						}},
+					)
 
 					if areaFails >= maxFailsPerArea {
 						slog.Warn("MONITOR",
@@ -309,8 +325,10 @@ func MonitorHxAreas() {
 				)
 			}
 		} else {
-			removeAreaFails(hxArea.Name)
 			setAreaProcessingState(hxArea.Name, false)
+			if !hxArea.LastActionSuccess {
+				removeAreaFails(hxArea.Name)
+			}
 		}
 	}
 }

@@ -26,6 +26,7 @@ type HXArea struct {
 	SubAreas             []HXSubArea        `bson:"sub_areas" json:"sub_areas"`
 	NumberName           string             `bson:"number_name" json:"number_name"`
 	LastError            string             `bson:"last_error" json:"last_error"`
+	NumErrors            int8               `bson:"num_errors" json:"num_errors"`
 }
 
 type HXSubArea struct {
