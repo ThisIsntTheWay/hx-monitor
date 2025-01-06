@@ -1,0 +1,15 @@
+name: Monitor API backend docker build
+
+on:
+  push:
+    paths:
+      - 'api-backend/**'
+      - '!*.md'
+
+jobs:
+  use-build-and-push:
+    uses: ./.github/workflows/dockerhub-callable.yml
+    with:
+      image: 'hx-monitor-api'
+    secrets:
+      DOCKER_HUB_SECRET: ${{ secrets.DOCKER_HUB_SECRET }}
