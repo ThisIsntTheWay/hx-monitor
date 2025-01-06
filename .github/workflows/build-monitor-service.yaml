@@ -11,7 +11,7 @@ on:
       - '!tests/**'
 
 jobs:
-  use-build-and-push:
+  build-and-push-image:
     uses: ./.github/workflows/dockerhub-callable.yml
     with:
       image: 'hx-monitor-service'
