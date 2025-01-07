@@ -9,6 +9,7 @@
 Set env vars:
 ```bash
 # MongoDB credentials
+export MONGODB_DATABASE=hx # Optional, shown is the default value
 export MONGO_USER=
 export MONGO_PASSWORD=
 export MONGO_HOST=
