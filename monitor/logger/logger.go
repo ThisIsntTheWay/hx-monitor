@@ -1,12 +1,12 @@
 package logger
 
 import (
-	"fmt"
 	"log/slog"
+	"os"
 )
 
 // Logs a fatal error and panics
-func LogErrorFatal(module string, message string) error {
+func LogErrorFatal(module string, message string) {
 	slog.Error(module, "fatal", message)
-	panic(fmt.Sprintf("%s: %s", module, message))
+	os.Exit(1)
 }
