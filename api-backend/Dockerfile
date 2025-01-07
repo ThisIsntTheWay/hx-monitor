@@ -1,7 +1,7 @@
 # Must use parent dir as context
 FROM golang:1.23.3-alpine AS build
 
-WORKDIR /go/src/app/hx-monitor
+WORKDIR /go/src/app/hx-monitor/monitor
 COPY ./monitor .
 
 WORKDIR /go/src/app/hx-monitor/api-callback

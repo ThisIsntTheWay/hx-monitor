@@ -1,4 +1,4 @@
-name: Monitor API backend docker build
+name: API backend docker build
 
 on:
   push:
