@@ -8,6 +8,7 @@ import (
 
 	c "github.com/thisisnttheway/hx-monitor/configuration"
 	"github.com/thisisnttheway/hx-monitor/logger"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -23,10 +24,17 @@ func Connect() *mongo.Client {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	slog.Info("DB", "action", "connect", "host", c.GetMongoConfig().Host, "port", c.GetMongoConfig().Port)
+
 	var err error
 	client, err = mongo.Connect(ctx, options.Client().ApplyURI(c.GetMongoConfig().Uri))
 	if err != nil {
 		logger.LogErrorFatal("DB", fmt.Sprintf("Error while connecting: %v", err.Error()))
+	}
+
+	cmd, result := bson.D{{"ping", 1}}, bson.D{}
+	if err := client.Database("admin").RunCommand(ctx, cmd).Decode(&result); err != nil {
+		logger.LogErrorFatal("DB", fmt.Sprintf("DB unreachable: %v", err))
 	}
 
 	slog.Info("DB", "action", "connect", "success", true)
