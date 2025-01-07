@@ -1,3 +1,10 @@
+# HX Monitor
+
+## Structure
+- `monitor` - HX area monitoring service, writes into DB
+- `api-backend` - API that exposes the DB
+- `frontend` - Frontend that relies on `api-backend`
+
 ## Usage
 Set env vars:
 ```bash
@@ -36,7 +43,7 @@ TWILIO_CALLBACK_URL="" # Publicly accessible (base) URL under which the callback
 NGROK_AUTHTOKEN=""     # If TWILIO_CALLBACK_URL is unset, this must be set
 ```
 
-## Test
+## Test environment
 ```bash
 mkdir ./mongodb-test
 
