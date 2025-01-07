@@ -1,17 +1,5 @@
-# Cloned whisper.cpp repo
-whisper.cpp
-
-# Other stuff
 .git
-*.log
 *.md
+*.sh
 *.txt
-*test*
-recordings
-whisper_models
 frontend
-
-# Binaries, bootstrap scripts
-hx-monitor
-hx-monitor-api
-seed-database.sh

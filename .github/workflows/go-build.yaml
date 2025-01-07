@@ -1,0 +1,42 @@
+name: Go build
+
+on:
+  workflow_call:
+    inputs:
+      working_dir:
+        description: 'Working dir for the building action'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubunut-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Determine Go version
+        id: det_go_ver
+        run: |
+          if [ ! -f go.mod ]; then
+            echo "::warning title=Could not determine go version::No go.mod file was found"
+            exit 1
+          fi
+
+          GO_VERSION=$(cat go.mod | grep -E '^go\s\d*' | awk '{print $2}')
+          echo "Determined GO_VERSION: $GO_VERSION"
+          if 
+
+          echo "GO_VERSION=$GO_VERSION" >> $GITHUB_OUTPUT
+        working-directory: ${{ inputs.working_dir }}
+        
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '${{ steps.det_go_ver.outputs.GO_VERSION }}'
+
+      - name: Install dependencies
+        run: go get .
+        working-directory: ${{ inputs.working_dir }}
+      - name: Build
+        run: go build -v ./...
+        working-directory: ${{ inputs.working_dir }}

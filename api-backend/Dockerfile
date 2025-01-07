@@ -2,7 +2,7 @@
 FROM golang:1.23.3-alpine AS build
 
 WORKDIR /go/src/app/hx-monitor
-COPY . .
+COPY ./monitor .
 
 WORKDIR /go/src/app/hx-monitor/api-callback
 COPY ./api-backend .

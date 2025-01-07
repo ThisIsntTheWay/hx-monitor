@@ -3,14 +3,9 @@ name: Monitor service docker build
 on:
   push:
     paths:
-      - '.'
-      - '!frontend/**'
+      - 'monitor/**'
       - '!.github/**'
-      - '!api-backend/**'
-      - '!*.txt'
       - '!*.md'
-      - '!.gitignore'
-      - '!tests/**'
   workflow_dispatch:
 
 jobs:
@@ -19,4 +14,4 @@ jobs:
     secrets: inherit
     with:
       image: 'hx-monitor-service'
-      context: .
+      context: ./monitor
