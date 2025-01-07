@@ -8,8 +8,13 @@ on:
         required: true
         type: string
       context:
-        description: 'Dockerfile context'
-        required: true
+        description: 'Build context'
+        default: '.'
+        required: false
+        type: string
+      dockerfile:
+        default: 'Dockerfile'
+        required: false
         type: string
 
 jobs:
@@ -38,6 +43,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: ${{ inputs.context }}
+        file: ${{ inputs.dockerfile }}
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
