@@ -129,7 +129,7 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
                   <>Next update in <span className="time-string">{nextUpdateTime}</span></>
                 ) : (
                   <span className="error-string">
-                    Next update was supposed to be <span className="time-string">{nextUpdateTime}</span> ago!
+                    Next update expected <span className="time-string">{nextUpdateTime}</span> ago!
                   </span>
                 )}
                 <br/>
@@ -186,7 +186,7 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
           <span className="transcript-string">
             {apiTranscriptData ? (
               <>
-                {apiTranscriptData.data.transcript ? (
+                {apiTranscriptData.data?.transcript ? (
                   <>💬 &quot;{apiTranscriptData.data.transcript}&quot;</>
                 ) : (
                   <>❌ <em>No transcript was returned</em></>
