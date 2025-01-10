@@ -51,7 +51,7 @@ const NavBar: React.FC<NavBarProps> = ({
                     {!geoLocationStatus.canGetGeolocation ? (
                         "❌"
                     ) : !geoLocationStatus.canGetUserPosition && (
-                        "🔎"
+                        "❓"
                     )}
                 </span>
             </button>

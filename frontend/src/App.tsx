@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const [featureState, setFeatureState] = useState<Feature<Geometry> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [localizeHandler, setLocalizeHandler] = useState<(() => void) | null>(null);
+  const [centerMap, setCenterMap] = useState(false);
   const [geoLocationStatus, setGeoLocationStatus] = useState<GeoLocationStatus>(() => {return {
     canGetGeolocation: false,
     canGetUserPosition: false
@@ -50,6 +50,11 @@ const App: React.FC = () => {
       .finally(() => setFetching(false));
   };
   useEffect(apiFetchAreas, []);
+
+  const handleCenterMap = () => {
+    setCenterMap(true);
+    setTimeout(() => setCenterMap(false), 1000);
+  };
 
   // Get GeoJSON data
   useEffect(() => {
@@ -123,7 +128,7 @@ const App: React.FC = () => {
         refetchEvent={apiFetchAreas}
         isFetching={isFetching}
         geoLocationStatus={geoLocationStatus}
-        onLocalize={() => {if (geoLocationStatus.canGetUserPosition && localizeHandler) localizeHandler();}}
+        onLocalize={() => {if (geoLocationStatus.canGetUserPosition) handleCenterMap();}}
       />
       
       {/* Map */}
@@ -134,7 +139,7 @@ const App: React.FC = () => {
             geoLocationStatusUpdate={(g) => setGeoLocationStatus(g)}
             featureStateUpdate={(f) => setFeatureState(f)}
             infoBoxVisibilityUpdate={(s) => setInfoBoxVisibility(s)}
-            localizeHandler={setLocalizeHandler}
+            centerMap={centerMap}
           />
         )}
       </div>

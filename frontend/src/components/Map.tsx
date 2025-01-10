@@ -22,6 +22,7 @@ export interface GeoLocationStatus {
 interface MapProps {
     apiAreaData: ApiResponseArea,
     geoJsonData: GeoJsonObject,
+    centerMap: boolean,
     
     // Proxied to NavBar
     geoLocationStatusUpdate: (g: GeoLocationStatus) => void,
@@ -29,7 +30,6 @@ interface MapProps {
     featureStateUpdate: (f: Feature<Geometry>) => void,
     infoBoxVisibilityUpdate: (s: boolean) => void,
 
-    localizeHandler: (arg0: any) => void,
 }
   
 const INTERLAKEN_COORDS: LatLngTuple = [46.6863, 7.8632];
@@ -39,9 +39,8 @@ const switzerlandBounds = new LatLngBounds(
 );
 
 export const Map: React.FC<MapProps> = ({
-    apiAreaData, geoJsonData,
-    geoLocationStatusUpdate, featureStateUpdate, infoBoxVisibilityUpdate,
-    localizeHandler
+    apiAreaData, geoJsonData, centerMap,
+    geoLocationStatusUpdate, featureStateUpdate, infoBoxVisibilityUpdate
 }) => {
     const [featureState, setFeatureState] = useState<Feature<Geometry> | null>(null);
     const [map, setMap] = useState<L.Map | null>(null);
@@ -61,11 +60,12 @@ export const Map: React.FC<MapProps> = ({
         iconAnchor: [15, 15],
     });
     
+
     useEffect(() => {
-        if (map && userPosition) {
-            map.setView([userPosition.lat, userPosition.lng], 11);
+        if (centerMap && userPosition && map) {
+            map.setView(userPosition, 11);
         }
-    }, [localizeHandler]);
+    }, [centerMap, userPosition]);
 
     useEffect(() => {
         if (featureState) featureStateUpdate(featureState);
