@@ -120,6 +120,7 @@ export const Map: React.FC<MapProps> = ({
             style={{ height: '100vh', width: '100%' }}
             maxBounds={switzerlandBounds}
             maxBoundsViscosity={1.0}
+            minZoom={9}
             maxZoom={13}
         >
         <TileLayer
