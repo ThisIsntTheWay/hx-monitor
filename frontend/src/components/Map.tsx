@@ -49,7 +49,7 @@ const makeTooltipText = (subAreaName: string): string => {
 }
 
 const generateTooltipContent = (feature: any, zoomLevel: number): string => {
-    const baseText = `<strong>${makeTooltipText(feature.properties.Name)}</strong>`;
+    const baseText = `<span class="text main">${makeTooltipText(feature.properties.Name)}</span>`;
     if (zoomLevel >= 12) {
         const upper = feature.properties.Upper?.Metric?.Alt;
         const lower = feature.properties.Lower?.Metric?.Alt;
@@ -57,7 +57,7 @@ const generateTooltipContent = (feature: any, zoomLevel: number): string => {
             `⬆️ ${upper.Altitude} ${upper.Type}`,
             `⬇️ ${lower.Altitude} ${lower.Type}`
         ]
-        return `${baseText}<br/>${details.join("<br/>")}`;
+        return `${baseText}<br/><span class="text details">${details.join("<br/>")}</span>`;
     }
 
     return baseText;

@@ -33,6 +33,14 @@
   background-color: #3388ff;
 }
 
+.leaflet-tooltip-pane .text {
+  opacity: 1;
+}
+.leaflet-tooltip-pane .text.main {
+  font-weight: bold;
+}
+
+
 /* --- Overlays --- */
 .overlay {
   position: fixed;
