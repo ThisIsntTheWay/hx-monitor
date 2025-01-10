@@ -9,7 +9,7 @@ import (
 // ---------------------------------------------
 // DATABASE
 type Number struct {
-	ID             primitive.ObjectID `bson:"_id" json:"_id"`
+	ID             primitive.ObjectID `bson:"_id" json:"id"`
 	Name           string             `bson:"name" json:"name"`
 	Number         string             `bson:"number" json:"number"`
 	LastCalled     time.Time          `bson:"last_called" json:"last_called"`
@@ -17,7 +17,7 @@ type Number struct {
 }
 
 type HXArea struct {
-	ID                   primitive.ObjectID `bson:"_id" json:"_id"`
+	ID                   primitive.ObjectID `bson:"_id" json:"id"`
 	Name                 string             `bson:"name" json:"name"`
 	NextAction           time.Time          `bson:"next_action" json:"next_action"`
 	LastAction           time.Time          `bson:"last_action" json:"last_action"`
@@ -36,7 +36,7 @@ type HXSubArea struct {
 }
 
 type Call struct {
-	ID       primitive.ObjectID `bson:"_id" json:"_id"`
+	ID       primitive.ObjectID `bson:"_id" json:"id"`
 	SID      string             `bson:"sid" json:"sid"`
 	Time     time.Time          `bson:"time" json:"time"`
 	Status   string             `bson:"status" json:"status"`
@@ -45,7 +45,7 @@ type Call struct {
 }
 
 type Transcript struct {
-	ID         primitive.ObjectID `bson:"_id" json:"_id"`
+	ID         primitive.ObjectID `bson:"_id" json:"id"`
 	Transcript string             `bson:"transcript" json:"transcript"`
 	Date       time.Time          `bson:"date" json:"date"`
 	Cost       string             `bson:"cost" json:"cost"`
