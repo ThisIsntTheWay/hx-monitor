@@ -9,6 +9,17 @@
   text-align: center;
 }
 
+/* --- Text --- */
+.time-string {
+  font-weight: bold;
+  color: black;
+}
+
+.error-string {
+  font-weight: bold;
+  color: rgb(184, 0, 0);
+}
+
 /* --- Map --- */
 .marker-dot {
   border-radius: 50%;
@@ -147,10 +158,6 @@ h4 {
 .box.warning {
   background-color: var(--warning-color-light);
   border-color: var(--warning-color);
-}
-
-.time-string {
-  font-weight: bold;
 }
 
 /* --- Flight operating hours text --- */

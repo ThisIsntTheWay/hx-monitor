@@ -39,6 +39,13 @@ export interface ApiResponseTranscript {
     data: Transcript;
 }
 
+// Checks if next update is past now
+export const nextUpdateIsInThePast = (area: Area): boolean => {
+    const now = new Date().getTime();
+    const nextUpdate = new Date(area.next_action).getTime();
+    return now > nextUpdate;
+}
+
 export const fetchApiAreas = async (): Promise<ApiResponseArea> => {
     try {
         const response = await axios.get(`${API_BASE_URL}/api/v1/areas`);
@@ -133,8 +140,10 @@ export const getStylingForFeature = (feature: Feature<Geometry> | undefined, api
     const resolvedArea = resolveAreaFromFeature(feature, apiData);
 
     if (resolvedArea?.last_action_success) {
-        featureStyling.Color = resolvedSubArea?.active ? 'red' : 'green';
-        featureStyling.Opacity = resolvedSubArea?.active ? 1 : 0.5;
+        if (!nextUpdateIsInThePast(resolvedArea)) {
+            featureStyling.Color = resolvedSubArea?.active ? 'red' : 'green';
+            featureStyling.Opacity = resolvedSubArea?.active ? 1 : 0.5;
+        }
         return featureStyling;
     }
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Feature, Geometry } from 'geojson';
 import {
   ApiResponseArea, ApiResponseTranscript, Area,
-  resolveAreaFromFeature, fetchApiTranscript
+  resolveAreaFromFeature, fetchApiTranscript, nextUpdateIsInThePast
 } from '../utils/fetchApiData';
 
 /* Box */
@@ -69,6 +69,7 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
   const [apiTranscriptData, setApiTranscriptData] = useState<ApiResponseTranscript | null>(null);
   const [lastUpdateTime, updateLastUpdateTime] = useState<string>("...");
   const [nextUpdateTime, updateNextUpdateTime] = useState<string>("...");
+  const [useWarningStyling, updateWarningStyling] = useState<boolean>(false);
   const [err, setError] = useState<string>("");
 
   const resolvedArea = feature && apiAreaData ? resolveAreaFromFeature(feature, apiAreaData) : null;
@@ -82,6 +83,7 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
         console.error("Could not resolve area from feature:", feature);
         return;
       }
+      updateWarningStyling(!resolvedArea?.last_action_success || nextUpdateIsInThePast(resolvedArea));
 
       // Fetch transcript data for the resolved area
       setError("");
@@ -111,38 +113,52 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
   if (!visibility) return null;
 
   return (
-    <div className={`box popup ${err ? "error" : (!resolvedArea?.last_action_success ? 'warning' : '')}`} hidden={!visibility}>
+    <div className={`box popup ${err ? "error" : (useWarningStyling ? 'warning' : '')}`} hidden={!visibility}>
       <button className="close" onClick={onClose}>❌</button>
       {resolvedArea && !err ? (
         <>
           {/* Header */}
-          <h1>{!resolvedArea.last_action_success && "⚠️"} {capitalizeString(resolvedArea.name)}</h1>
+          <h1>{useWarningStyling && "⚠️"} {capitalizeString(resolvedArea.name)}</h1>
           
           {/* Update times */}
           <p>
             Last updated <span className="time-string">{lastUpdateTime}</span> ago<br/>
             {resolvedArea.last_action && (
               <>
-                Next update in <span className="time-string">{nextUpdateTime}</span><br/>
+                {!nextUpdateIsInThePast(resolvedArea) ? (
+                  <>Next update in <span className="time-string">{nextUpdateTime}</span></>
+                ) : (
+                  <span className="error-string">
+                    Next update was supposed to be <span className="time-string">{nextUpdateTime}</span> ago!
+                  </span>
+                )}
+                <br/>
               </>
             )}
           </p>
 
+          {/* Warning on parser errors etc. */}
+          {nextUpdateIsInThePast(resolvedArea) || !resolvedArea.last_action_success ? (
+            <h2>Assume area to be active!</h2>
+          ) : (null)}
+
           <div className="scrollable">
           {/* Flight operating hours */}
-          {resolvedArea.flight_operating_hours ? (
-            <>
-            <span className={`flight-ops-status-text ${withinFlightOperatingHours(resolvedArea) ? ("within") : ("outside")}`}>
-            {withinFlightOperatingHours(resolvedArea) ? (
-              "Within"
+          {!nextUpdateIsInThePast(resolvedArea) ? (
+            resolvedArea.flight_operating_hours ? (
+              <>
+                <span className={`flight-ops-status-text ${withinFlightOperatingHours(resolvedArea) ? ("within") : ("outside")}`}>
+                {withinFlightOperatingHours(resolvedArea) ? (
+                  "Within"
+                ) : (
+                  "Outside"
+                )}
+                </span> flight operating hours
+              </>
             ) : (
-              "Outside"
-            )}
-            </span> flight operating hours
-            </>
-          ) : (
-            "No flight operating hours today"
-          )}
+              "No flight operating hours today"
+            )
+          ): (null)}
 
           {/* SubAreas */}
           {resolvedArea.last_action_success ? (
