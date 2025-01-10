@@ -77,14 +77,9 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
     if (feature && apiAreaData) {
       const resolvedArea = resolveAreaFromFeature(feature, apiAreaData);
 
-      if (!resolvedArea) {
+      if (!resolvedArea || resolvedArea.Name === "Unknown") {
         setError("UI error: Could not resolve area from given feature.");
         console.error("Could not resolve area from feature:", feature);
-        return;
-      }
-
-      if (resolvedArea.Name === "Unknown") {
-        setError("UI error: Could not resolve area from given feature.");
         return;
       }
 
@@ -116,7 +111,7 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
   if (!visibility) return null;
 
   return (
-    <div className={`box popup${!resolvedArea?.LastActionSuccess ? "warning" : ''}`} hidden={!visibility}>
+    <div className={`box popup ${err ? "error" : (!resolvedArea?.LastActionSuccess ? 'warning' : '')}`} hidden={!visibility}>
       <button className="close" onClick={onClose}>❌</button>
       {resolvedArea && !err ? (
         <>
