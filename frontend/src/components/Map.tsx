@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, GeoJSON, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, Marker, useMapEvent } from 'react-leaflet';
 import { Feature, Geometry, GeoJsonObject } from 'geojson';
 import { ApiResponseArea, getStylingForFeature } from '../utils/fetchApiData';
-import L, { LatLngTuple, LatLngBounds } from 'leaflet';
+import L, { LatLngTuple, LatLngBounds, TooltipOptions } from 'leaflet';
 
 interface UserPosition {
     lat: number;
@@ -38,6 +38,31 @@ const switzerlandBounds = new LatLngBounds(
     [47.8, 10.5] // NE
 );
 
+const makeTooltipText = (subAreaName: string): string => {
+    const areaType = subAreaName.split(" ")[0];
+
+    let areaNum = "";
+    const numMatches = subAreaName.match(/\d+/);
+    if (numMatches !== null) areaNum = numMatches[0];
+
+    return areaType + (areaNum ? " " + areaNum : "");
+}
+
+const generateTooltipContent = (feature: any, zoomLevel: number): string => {
+    const baseText = `<strong>${makeTooltipText(feature.properties.Name)}</strong>`;
+    if (zoomLevel >= 12) {
+        const upper = feature.properties.Upper?.Metric?.Alt;
+        const lower = feature.properties.Lower?.Metric?.Alt;
+        const details = [
+            `⬆️ ${upper.Altitude} ${upper.Type}`,
+            `⬇️ ${lower.Altitude} ${lower.Type}`
+        ]
+        return `${baseText}<br/>${details.join("<br/>")}`;
+    }
+
+    return baseText;
+};
+
 export const Map: React.FC<MapProps> = ({
     apiAreaData, geoJsonData, centerMap,
     geoLocationStatusUpdate, featureStateUpdate, infoBoxVisibilityUpdate
@@ -52,13 +77,15 @@ export const Map: React.FC<MapProps> = ({
             canGetUserPosition: false
         }
     });
-    
-    let userLocationIcon = L.divIcon({
-        className: "marker-dot" + (geoLocationStatus.canGetUserPosition ? " located" : ""),
-        iconSize: [20, 20],
-        iconAnchor: [15, 15],
-    });
-    
+
+    const tooltipProps: TooltipOptions = {permanent: true, direction: 'center'};
+
+    const MapZoomListener = () => {
+        const map = useMapEvent('zoomend', () => {
+            updateTooltips(map.getZoom());
+        });
+        return null;
+    };
 
     useEffect(() => {
         if (centerMap && userPosition && map) {
@@ -104,13 +131,36 @@ export const Map: React.FC<MapProps> = ({
         }, 5000);
     
         return () => clearInterval(intervalId);
-      }, []);
+    }, []);
+
+    const updateTooltips = (zoomLevel: number) => {
+        if (map) {
+            map.eachLayer((l) => {
+                if (l instanceof L.Polygon) {
+                    if (zoomLevel > 9) {
+                        l.bindTooltip(
+                            generateTooltipContent(l.feature, zoomLevel),
+                            tooltipProps
+                        );
+                    } else {
+                        l.unbindTooltip();
+                    }
+                }
+            })
+        }
+    };
       
     /*
     useEffect(() => {
         console.log(userAltitudeAndHeading);
     }, [userAltitudeAndHeading]);
     */
+
+    let userLocationIcon = L.divIcon({
+        className: "marker-dot" + (geoLocationStatus.canGetUserPosition ? " located" : ""),
+        iconSize: [20, 20],
+        iconAnchor: [15, 15],
+    });
 
     return (
         <MapContainer
@@ -127,6 +177,7 @@ export const Map: React.FC<MapProps> = ({
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
+        <MapZoomListener />
 
         {/* Positioning */}
         {userPosition && (
@@ -136,21 +187,26 @@ export const Map: React.FC<MapProps> = ({
         {/* Render GeoJSON data */}
         {apiAreaData && geoJsonData && (
             <GeoJSON
-            data={geoJsonData}
-            style={(feature) => ({
-                color: getStylingForFeature(feature, apiAreaData).Color,
-                weight: 3,
-                opacity: getStylingForFeature(feature, apiAreaData).Opacity,
-                interactive: true,
-            })}
-            onEachFeature={(feature, layer) => {
-                layer.on('click', () => {
-                    infoBoxVisibilityUpdate(true);
-                    if (feature.properties.Name !== featureState?.properties?.Name) {
-                        setFeatureState(feature);
-                    }
-                });
-            }}
+                data={geoJsonData}
+                style={(feature) => ({
+                    color: getStylingForFeature(feature, apiAreaData).Color,
+                    weight: 3,
+                    opacity: getStylingForFeature(feature, apiAreaData).Opacity,
+                    interactive: true,
+                })}
+                onEachFeature={(feature, layer) => {
+                    layer.on('click', () => {
+                        infoBoxVisibilityUpdate(true);
+                        if (feature.properties.Name !== featureState?.properties?.Name) {
+                            setFeatureState(feature);
+                        }
+                    });
+
+                    layer.bindTooltip(
+                        generateTooltipContent(feature, 10),
+                        tooltipProps
+                    ).openTooltip();
+                }}
             />
         )}
         </MapContainer>
