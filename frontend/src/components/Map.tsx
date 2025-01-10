@@ -54,9 +54,8 @@ export const Map: React.FC<MapProps> = ({
     });
     
     let userLocationIcon = L.divIcon({
-        className: 'marker-dot',
-        html: "<div class='" + (geoLocationStatus.canGetUserPosition ? "blue" : "gray") + "'></div>",
-        iconSize: [30, 30],
+        className: "marker-dot" + (geoLocationStatus.canGetUserPosition ? " located" : ""),
+        iconSize: [20, 20],
         iconAnchor: [15, 15],
     });
     

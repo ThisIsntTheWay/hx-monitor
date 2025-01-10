@@ -27,13 +27,10 @@
   height: 20px;
   border: 3px solid white;
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
-  background-color: violet;
+  background-color: gray;
 }
-.marker-dot .blue {
-  background-color: #3388ff; 
-}
-.marker-dot .gray {
-  background-color: gray; 
+.marker-dot.located {
+  background-color: #3388ff;
 }
 
 /* --- Overlays --- */
