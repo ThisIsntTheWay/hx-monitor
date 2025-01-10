@@ -7,21 +7,21 @@ if (!API_BASE_URL) {
 }
 
 export interface SubArea {
-    Fullname: string;
-    Name: string;
-    Active: boolean;
+    full_name: string;
+    name: string;
+    active: boolean;
 }
 
 export interface Area {
-    ID: string;
-    Name: string;
-    NextAction: string; // ISO string for datetime
-    LastAction: string; // ISO string for datetime
-    LastActionSuccess: boolean;
-    SubAreas: SubArea[];
-    NumberName: string;
-    LastError: string;
-    FlightOperatingHours: string[];
+    id: string;
+    name: string;
+    next_action: string; // ISO string for datetime
+    last_action: string; // ISO string for datetime
+    last_action_success: boolean;
+    sub_areas: SubArea[];
+    number_name: string;
+    last_error: string;
+    flight_operating_hours: string[];
 }
 
 export interface ApiResponseArea {
@@ -77,8 +77,8 @@ interface FeatureStyling {
 // Returns a matching SubArea for a given feature
 const resolveSubAreaFromFeature = (feature: Feature<Geometry>, apiData: ApiResponseArea): SubArea | undefined => {
     const resolvedArea = resolveAreaFromFeature(feature, apiData);
-    const matchingSubArea = resolvedArea?.SubAreas.find(subArea => {
-        return subArea.Fullname === feature?.properties?.Name;
+    const matchingSubArea = resolvedArea?.sub_areas.find(subArea => {
+        return subArea.full_name === feature?.properties?.Name;
     });
     if (matchingSubArea === undefined) {
         console.error("Could not resolve SubArea based on feature name:", feature?.properties?.Name);
@@ -91,26 +91,26 @@ const resolveSubAreaFromFeature = (feature: Feature<Geometry>, apiData: ApiRespo
 export const resolveAreaFromFeature = (feature: Feature<Geometry>, apiData: ApiResponseArea | null): Area => {
     const candidateName = feature?.properties?.Name.split(" ")[1].toLowerCase();
     const matchingArea = apiData?.data?.find(area => {
-        return area.Name === candidateName;
+        return area.name === candidateName;
     });
     if (matchingArea === undefined || apiData === null) {
         console.error("Could not resolve Area based on candidate:", candidateName, "apiData is:", apiData);
         
         // Dummy Area
         return {
-            ID: "0",
-            Name: "Unknown",
-            LastAction: "",
-            LastActionSuccess: false,
-            NextAction: "",
-            SubAreas: [{
-                Fullname: "Unknown",
-                Name: "Unknown",
-                Active: true,
+            id: "0",
+            name: "Unknown",
+            last_action: "",
+            last_action_success: false,
+            next_action: "",
+            sub_areas: [{
+                full_name: "Unknown",
+                name: "Unknown",
+                active: true,
             }],
-            NumberName: "",
-            LastError: "",
-            FlightOperatingHours: [""],
+            number_name: "",
+            last_error: "",
+            flight_operating_hours: [""],
         };
     }
 
@@ -132,9 +132,9 @@ export const getStylingForFeature = (feature: Feature<Geometry> | undefined, api
     const resolvedSubArea = resolveSubAreaFromFeature(feature, apiData);
     const resolvedArea = resolveAreaFromFeature(feature, apiData);
 
-    if (resolvedArea?.LastActionSuccess) {
-        featureStyling.Color = resolvedSubArea?.Active ? 'red' : 'green';
-        featureStyling.Opacity = resolvedSubArea?.Active ? 1 : 0.5;
+    if (resolvedArea?.last_action_success) {
+        featureStyling.Color = resolvedSubArea?.active ? 'red' : 'green';
+        featureStyling.Opacity = resolvedSubArea?.active ? 1 : 0.5;
         return featureStyling;
     }
 

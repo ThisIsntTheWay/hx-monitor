@@ -16,11 +16,11 @@ interface boxData {
 // Checks if current time is during active flight operation hours
 const withinFlightOperatingHours = (area: Area): boolean => {
   let indexOfLastPastFlightOpTime = 0;
-  const flightOpsLength = area.FlightOperatingHours.length;
+  const flightOpsLength = area.flight_operating_hours.length;
   const now = new Date().getTime();
 
   if (flightOpsLength === 2 || flightOpsLength === 4) {
-    area.FlightOperatingHours.forEach((v, i) => {
+    area.flight_operating_hours.forEach((v, i) => {
       const thisFlightOpTime = new Date(v).getTime();
       if (now - thisFlightOpTime > 0) {
         indexOfLastPastFlightOpTime = i;
@@ -77,7 +77,7 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
     if (feature && apiAreaData) {
       const resolvedArea = resolveAreaFromFeature(feature, apiAreaData);
 
-      if (!resolvedArea || resolvedArea.Name === "Unknown") {
+      if (!resolvedArea || resolvedArea.name === "Unknown") {
         setError("UI error: Could not resolve area from given feature.");
         console.error("Could not resolve area from feature:", feature);
         return;
@@ -85,7 +85,7 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
 
       // Fetch transcript data for the resolved area
       setError("");
-      fetchApiTranscript(resolvedArea.Name)
+      fetchApiTranscript(resolvedArea.name)
         .then(setApiTranscriptData)
         .catch((err) => setError(err.message));
     }
@@ -95,8 +95,8 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
   useEffect(() => {
     const updateTimeStates = () => {
       if (resolvedArea) {
-        updateLastUpdateTime(timeDiffString(resolvedArea.LastAction));
-        updateNextUpdateTime(timeDiffString(resolvedArea.NextAction));
+        updateLastUpdateTime(timeDiffString(resolvedArea.last_action));
+        updateNextUpdateTime(timeDiffString(resolvedArea.next_action));
       }
     };
 
@@ -111,17 +111,17 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
   if (!visibility) return null;
 
   return (
-    <div className={`box popup ${err ? "error" : (!resolvedArea?.LastActionSuccess ? 'warning' : '')}`} hidden={!visibility}>
+    <div className={`box popup ${err ? "error" : (!resolvedArea?.last_action_success ? 'warning' : '')}`} hidden={!visibility}>
       <button className="close" onClick={onClose}>❌</button>
       {resolvedArea && !err ? (
         <>
           {/* Header */}
-          <h1>{!resolvedArea.LastActionSuccess && "⚠️"} {capitalizeString(resolvedArea.Name)}</h1>
+          <h1>{!resolvedArea.last_action_success && "⚠️"} {capitalizeString(resolvedArea.name)}</h1>
           
           {/* Update times */}
           <p>
             Last updated <span className="time-string">{lastUpdateTime}</span> ago<br/>
-            {resolvedArea.LastAction && (
+            {resolvedArea.last_action && (
               <>
                 Next update in <span className="time-string">{nextUpdateTime}</span><br/>
               </>
@@ -130,7 +130,7 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
 
           <div className="scrollable">
           {/* Flight operating hours */}
-          {resolvedArea.FlightOperatingHours ? (
+          {resolvedArea.flight_operating_hours ? (
             <>
             <span className={`flight-ops-status-text ${withinFlightOperatingHours(resolvedArea) ? ("within") : ("outside")}`}>
             {withinFlightOperatingHours(resolvedArea) ? (
@@ -145,12 +145,12 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
           )}
 
           {/* SubAreas */}
-          {resolvedArea.LastActionSuccess ? (
+          {resolvedArea.last_action_success ? (
             <div>
               {/*
-              {resolvedArea.SubAreas.map((subArea, i) => (
+              {resolvedArea.sub_areas.map((subArea, i) => (
                 <p key={i}>
-                  <strong>{subArea.Fullname}</strong> {(resolvedArea.LastActionSuccess && !subArea.Active) ? "🟢" : "🔴"}<br/>
+                  <strong>{subArea.full_name}</strong> {(resolvedArea.last_action_success && !subArea.active) ? "🟢" : "🔴"}<br/>
                 </p>
               ))}
                 */}
@@ -158,9 +158,9 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
           ) : (
             <div>
               <h3><strong>The parser has encountered an error!</strong></h3>
-              <h4><em>{resolvedArea.LastError ? resolvedArea.LastError : "Unknown error"}</em></h4>
+              <h4><em>{resolvedArea.last_error ? resolvedArea.last_error : "Unknown error"}</em></h4>
               Area status could not be dynamically determined.<br/>
-              Either consult transcript or call {capitalizeString(resolvedArea.Name)} directly.
+              Either consult transcript or call {capitalizeString(resolvedArea.name)} directly.
             </div>
           )}
 
