@@ -1,37 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, GeoJSON, Marker, } from 'react-leaflet';
-import L, { LatLngTuple, LatLngBounds } from 'leaflet';
 import { Feature, Geometry, GeoJsonObject } from 'geojson';
-import { ApiResponseArea, fetchApiAreas, getStylingForFeature } from './utils/fetchApiData';
+import { ApiResponseArea, fetchApiAreas } from './utils/fetchApiData';
 import DisclaimerBox, { CheckIfDisclaimerMustBeShown } from './components/DisclaimerBox';
 import InfoBox from './components/InfoBox';
 import NavBar from './components/NavBar';
-
-/* Map positioning */
-interface UserPosition {
-  lat: number;
-  lng: number;
-}
-interface UserAltitudeAndHeading {
-  alt: number | null;
-  altAcc: number | null;
-  hdn: number | null;
-}
-
-const userLocationIcon = L.divIcon({
-  className: 'marker-dot',
-  html: '<div class="blue-dot"></div>',
-  iconSize: [30, 30],
-  iconAnchor: [15, 15],
-});
-
-const INTERLAKEN_COORDS: LatLngTuple = [46.6863, 7.8632];
-const switzerlandBounds = new LatLngBounds(
-  [45.8, 5.8], // SW
-  [47.8, 10.5] // NE
-);
+import Map, { GeoLocationStatus } from './components/Map';
 
 /* MAIN */
 const App: React.FC = () => {
@@ -45,49 +20,11 @@ const App: React.FC = () => {
   const [featureState, setFeatureState] = useState<Feature<Geometry> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
-  const [userAltitudeAndHeading, setUserAltitudeAndHeading] = useState<UserAltitudeAndHeading | null>(null);
-  const [canGetUserPos, setCanGetUserPos] = useState<boolean>(false);
-  const [hasUserPosFix, setHasUserPosFix] = useState<boolean>(false);
-  const [map, setMap] = useState<L.Map | null>(null);
-
-  /* Map functions */
-  const zoomOnLocation = (position: UserPosition) => {
-    if (map) {
-      map.setView([position.lat, position.lng], 11);
-    }
-  };
-  
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCanGetUserPos(true);
-          setHasUserPosFix(true);
-          setUserPosition({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-          setUserAltitudeAndHeading({
-            alt: position.coords.altitude,
-            altAcc: position.coords.altitudeAccuracy,
-            hdn: position.coords.heading,
-          });
-        },
-        (error) => {
-          setCanGetUserPos(false);
-          setHasUserPosFix(error.code === error.POSITION_UNAVAILABLE);
-          console.error('Error getting user location:', error);
-        }
-      );
-    }, 5000);
-
-    return () => clearInterval(intervalId);
-  }, []);
-
-  useEffect(() => {
-    console.log(userAltitudeAndHeading);
-  }, [userAltitudeAndHeading]);
+  const [localizeHandler, setLocalizeHandler] = useState<(() => void) | null>(null);
+  const [geoLocationStatus, setGeoLocationStatus] = useState<GeoLocationStatus>(() => {return {
+    canGetGeolocation: false,
+    canGetUserPosition: false
+  };});
 
   /* Disclaimer */
   useEffect(() => {
@@ -185,54 +122,21 @@ const App: React.FC = () => {
       <NavBar
         refetchEvent={apiFetchAreas}
         isFetching={isFetching}
-
-        canGetUserPos={canGetUserPos}
-        localizeEvent={() => {if (userPosition) zoomOnLocation(userPosition);}}
-        hasPositionFix={hasUserPosFix}
+        geoLocationStatus={geoLocationStatus}
+        onLocalize={() => {if (geoLocationStatus.canGetUserPosition && localizeHandler) localizeHandler();}}
       />
       
       {/* Map */}
       <div className={`${!apiAreaData || isFetching ? 'grayscale' : ''}`}>
-        <MapContainer
-          ref={setMap}
-          center={userPosition ? userPosition : INTERLAKEN_COORDS}
-          zoom={10}
-          style={{ height: '100vh', width: '100%' }}
-          maxBounds={switzerlandBounds}
-          maxBoundsViscosity={1.0}
-          maxZoom={13}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        {geoJsonData && apiAreaData && (
+          <Map
+            apiAreaData={apiAreaData} geoJsonData={geoJsonData}
+            geoLocationStatusUpdate={(g) => setGeoLocationStatus(g)}
+            featureStateUpdate={(f) => setFeatureState(f)}
+            infoBoxVisibilityUpdate={(s) => setInfoBoxVisibility(s)}
+            localizeHandler={setLocalizeHandler}
           />
-
-          {/* Positioning */}
-          {userPosition && (
-            <Marker position={userPosition} icon={userLocationIcon} />
-          )}
-          
-          {/* Render GeoJSON data */}
-          {apiAreaData && geoJsonData && (
-            <GeoJSON
-              data={geoJsonData}
-              style={(feature) => ({
-                color: getStylingForFeature(feature, apiAreaData).Color,
-                weight: 3,
-                opacity: getStylingForFeature(feature, apiAreaData).Opacity,
-                interactive: true,
-              })}
-              onEachFeature={(feature, layer) => {
-                layer.on('click', () => {
-                  setInfoBoxVisibility(true);
-                  if (feature.properties.Name !== featureState?.properties?.Name) {
-                    setFeatureState(feature);
-                  }
-                });
-              }}
-            />
-          )}
-        </MapContainer>
+        )}
       </div>
     </div>
   );

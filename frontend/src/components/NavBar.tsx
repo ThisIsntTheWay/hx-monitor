@@ -1,16 +1,16 @@
 import React, { useState } from "react";
+import { GeoLocationStatus } from "./Map";
 
 interface NavBarProps {
     refetchEvent: () => void,
     isFetching: boolean,
-    localizeEvent: () => void,
-    canGetUserPos: boolean,
-    hasPositionFix: boolean,
+    onLocalize: () => void,
+    geoLocationStatus: GeoLocationStatus
 }
 
 const NavBar: React.FC<NavBarProps> = ({
     refetchEvent, isFetching,
-    localizeEvent, canGetUserPos, hasPositionFix
+    onLocalize, geoLocationStatus
 }) => {
     const [btnDisabled, setBtnDisabled] = useState<boolean>(false);
     
@@ -42,12 +42,15 @@ const NavBar: React.FC<NavBarProps> = ({
             </button>
 
             {/* Locate on map */}
-            <button disabled={!canGetUserPos} onClick={localizeEvent}>
+            <button
+                disabled={!geoLocationStatus.canGetGeolocation || !geoLocationStatus.canGetUserPosition}
+                onClick={onLocalize}
+            >
                 🧭
                 <span className="nav-button-error-descriptor">
-                    {!canGetUserPos ? (
+                    {!geoLocationStatus.canGetGeolocation ? (
                         "❌"
-                    ) : !hasPositionFix && (
+                    ) : !geoLocationStatus.canGetUserPosition && (
                         "🔎"
                     )}
                 </span>
