@@ -1,9 +1,27 @@
 # HX Monitor
+Visualization of swiss TMA and CTR HX airspaces and their current activation states.  
+_Not all areas are implemented (yet?)_
 
-## Structure
+> [!WARNING]
+> This is an experimental service.  
+> It does not/cannot guarantee perfect accuracy.  
+> Use of this service is at your own risk.  
+
+## Components
 - `monitor` - HX area monitoring service, writes into DB
 - `api-backend` - API that exposes the DB
 - `frontend` - Frontend that relies on `api-backend`
+  - Uses `react-leaflet` in conjuction with the SHV hosted [airspace GeoJSON](https://airspace.shv-fsvl.ch/doc).
+
+## How it works
+The `monitor` component continuously updates the state of each area by robocalling each areas audio tapes (using Twilio).  
+The call then gets transcribed and the transcript parsed.  
+The result of this parsing will be stored in a MongoDB.
+
+The `api-backend` exposes the MongoDB through a read-only API.
+
+The `frontend` consumes both the SHV GeoJSON and the `api-backend` to show the user, on a map, where all airspaces are and whether or not they are active.  
+Those airspaces can be interacted with.
 
 ## Usage
 Set env vars:
