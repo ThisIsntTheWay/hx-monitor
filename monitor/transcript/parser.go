@@ -153,7 +153,7 @@ func parseTimeToCurrentDate(timeString string) (time.Time, error) {
 }
 
 // Extract time segments; Next updates and flight operating hours
-func parseTimeSegments(transcript string) []models.TimeSegment {
+func parseTimeSegments(transcript string) ([]models.TimeSegment, error) {
 	// \d{3,4} can also falsely match years - will be handled below
 	patternTimeSegments := `\d{1,2}[:. ]\d{2}|\d{3,4}`
 
@@ -239,7 +239,8 @@ func parseTimeSegments(transcript string) []models.TimeSegment {
 				replacedString := strings.Replace(transformedString, " ", ":", 1)
 				convertedTime, err := parseTimeToCurrentDate(replacedString)
 				if err != nil {
-					panic(err)
+					slog.Error("PARSER", "action", "parseTimeToCurrentDate", "error", err)
+					return nil, fmt.Errorf("error parsing time: %w", err)
 				}
 
 				segments = append(segments, convertedTime)
@@ -296,11 +297,11 @@ func parseTimeSegments(transcript string) []models.TimeSegment {
 
 	if len(timeSegments) == 0 {
 		slog.Error("PARSER", "action", "parseTimeSegments", "gotTimeSegments", false, "transcript", transcript)
-		return nil
+		return nil, fmt.Errorf("No time segments found")
 	}
 
 	rO = append(rO, models.TimeSegment{Type: "UpdateTimes", Times: timeSegments[0]})
-	return rO
+	return rO, nil
 }
 
 // Parse a transcript based on a reference time
@@ -310,8 +311,11 @@ func ParseTranscript(transcript string, referenceTime time.Time) (models.Airspac
 	var timeSegments []models.TimeSegment
 	var airspaceState models.AirspaceStatus
 
-	timeSegments = parseTimeSegments(transcript)
+	timeSegments, err := parseTimeSegments(transcript)
 	airspaceState = parseAirspaceStates(transcript)
+	if err != nil {
+		return airspaceState, err
+	}
 
 	// Assign time segments
 	var updateTimeTimeSegment models.TimeSegment

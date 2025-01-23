@@ -226,12 +226,10 @@ func initCall(number string) caller.CallResponse {
 }
 
 // Monitor HX areas: Keep track of states and schedule calls if necessary
-func MonitorHxAreas() {
+func MonitorHxAreas() error {
 	hxAreas, err := db.GetDocument[models.HXArea]("hx_areas", bson.D{})
 	if len(hxAreas) == 0 || err != nil {
-		logger.LogErrorFatal("MONITOR",
-			fmt.Sprintf("No hx_areas found (err: %v)", err),
-		)
+		return fmt.Errorf("no hx_areas found (err: %v)", err)
 	}
 
 	for _, hxArea := range hxAreas {
@@ -331,4 +329,6 @@ func MonitorHxAreas() {
 			}
 		}
 	}
+
+	return nil
 }

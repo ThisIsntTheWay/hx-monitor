@@ -71,7 +71,7 @@ func init() {
 	}()
 }
 
-func main() {
+func run() error {
 	// Set up config
 	slog.Info("MAIN", "message", "Setting up configuration...")
 	configuration.SetUpTwilioConfig()
@@ -106,5 +106,13 @@ func main() {
 		}
 
 		time.Sleep(sleepTime)
+	}
+}
+
+func main() {
+	err := run()
+	if err != nil {
+		slog.Error("MAIN", "error", err)
+		os.Exit(1)
 	}
 }
