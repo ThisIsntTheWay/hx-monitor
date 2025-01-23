@@ -40,7 +40,6 @@
   font-weight: bold;
 }
 
-
 /* --- Overlays --- */
 .overlay {
   position: fixed;
@@ -259,4 +258,10 @@ button.close:hover {
 }
 button.close:active {
   background-color: rgba(255, 56, 56, 0.548);  
+}
+
+/* --- Other --- */
+hr {
+  margin-top: 15px;
+  margin-bottom: 15px;
 }
