@@ -161,7 +161,7 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
           ): (null)}
 
           {/* SubAreas */}
-          {resolvedArea.last_action_success ? (
+          {resolvedArea.last_action_success && !nextUpdateIsInThePast(resolvedArea) ? (
             <div>
               {/*
               {resolvedArea.sub_areas.map((subArea, i) => (
@@ -173,13 +173,22 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
             </div>
           ) : (
             <div>
-              <p>
-                The parser has encountered an error:<br/>
-                <strong>{resolvedArea.last_error ? resolvedArea.last_error : "Unknown error"}</strong>
-              </p>
+              {nextUpdateIsInThePast(resolvedArea) ? (
+                <>
+                  Previously known information about the area has become stale.<br/>
+                  Wait for the area to be updated or call {capitalizeString(resolvedArea.name)} directly.
+                </>
+              ) : (
+                <>
+                  <p>
+                    The parser has encountered an error:<br/>
+                    <strong>{resolvedArea.last_error ? resolvedArea.last_error : "Unknown error"}</strong>
+                  </p>
 
-              Area status could not be dynamically determined.<br/>
-              Either consult transcript or call {capitalizeString(resolvedArea.name)} directly.
+                  Area status could not be dynamically determined.<br/>
+                  Either consult transcript or call {capitalizeString(resolvedArea.name)} directly.
+                </>
+              )}
             </div>
           )}
 
