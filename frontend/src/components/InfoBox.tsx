@@ -156,7 +156,7 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
                 </span> flight operating hours
               </>
             ) : (
-              "No flight operating hours today"
+              <>{resolvedArea.last_action_success && "No flight operating hours today"}</>
             )
           ): (null)}
 
@@ -173,8 +173,11 @@ const InfoBox: React.FC<boxData> = ({ apiAreaData, feature, visibility, onClose 
             </div>
           ) : (
             <div>
-              <h3><strong>The parser has encountered an error!</strong></h3>
-              <h4><em>{resolvedArea.last_error ? resolvedArea.last_error : "Unknown error"}</em></h4>
+              <p>
+                The parser has encountered an error:<br/>
+                <strong>{resolvedArea.last_error ? resolvedArea.last_error : "Unknown error"}</strong>
+              </p>
+
               Area status could not be dynamically determined.<br/>
               Either consult transcript or call {capitalizeString(resolvedArea.name)} directly.
             </div>
