@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import '../styles/Map.css';
 import { MapContainer, TileLayer, GeoJSON, Marker, useMapEvent } from 'react-leaflet';
 import { Feature, Geometry, GeoJsonObject } from 'geojson';
 import { ApiResponseArea, getStylingForFeature } from '../utils/fetchApiData';
@@ -29,7 +30,6 @@ interface MapProps {
     // Proxied to InfoBox
     featureStateUpdate: (f: Feature<Geometry>) => void,
     infoBoxVisibilityUpdate: (s: boolean) => void,
-
 }
   
 const INTERLAKEN_COORDS: LatLngTuple = [46.6863, 7.8632];

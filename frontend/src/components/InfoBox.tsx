@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import '../styles/Boxes.css';
 import { Feature, Geometry } from 'geojson';
 import {
   ApiResponseArea, ApiResponseTranscript, Area,

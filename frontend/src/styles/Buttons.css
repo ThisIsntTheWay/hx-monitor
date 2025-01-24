@@ -1,0 +1,58 @@
+
+/* --- Button --- */
+button {
+    background-color: rgba(0, 0, 0, 0.1);
+    color: rgb(58, 58, 58);
+    border: none;
+    padding: 1% 25%;
+    border-radius: 10px;
+    font-size: 30px;
+    cursor: pointer;
+    transition: background-color 0.1s ease /*, transform 0.05s ease*/;
+  }
+  
+  button:hover {
+    background-color: rgba(56, 159, 255, 0.2);
+  }
+  
+  button:active {
+    background-color: rgba(56, 159, 255, 0.377);
+    transform: scale(0.9);
+  }
+  
+  button:focus {
+    outline: none;
+  }
+  
+  /* Disabled */
+  button:disabled {
+    filter: grayscale(100%);
+    background-color: unset;
+    cursor: not-allowed;
+  }
+  button:disabled:hover,
+  button:disabled:active {
+    background-color: unset;
+    transition: unset;
+    transform: unset;
+  }
+  
+  /* Close button */
+  button.close {
+    /* Overrides */
+    padding: 1px 5px;
+    font-size: 18px;
+  
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    background-color: rgba(255, 56, 56, 0.103);
+    border: none;
+  }
+  button.close:hover {
+    background-color: rgba(255, 56, 56, 0.24);
+  }
+  button.close:active {
+    background-color: rgba(255, 56, 56, 0.548);  
+  }

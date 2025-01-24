@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react';
+
 import './App.css';
+import './styles/Buttons.css';
+import './styles/Overlays.css';
 import 'leaflet/dist/leaflet.css';
+
 import { Feature, Geometry, GeoJsonObject } from 'geojson';
 import { ApiResponseArea, fetchApiAreas } from './utils/fetchApiData';
 import DisclaimerBox, { CheckIfDisclaimerMustBeShown } from './components/DisclaimerBox';
 import InfoBox from './components/InfoBox';
+import HelpBox from './components/HelpBox';
 import NavBar from './components/NavBar';
 import Map, { GeoLocationStatus } from './components/Map';
 
@@ -17,6 +22,7 @@ const App: React.FC = () => {
 
   const [mustShowDisclaimer, setDisclaimerState] = useState<boolean>(false);
   const [infoBoxVisibility, setInfoBoxVisibility] = useState<boolean>(false);
+  const [helpBoxVisibility, setHelpBoxVisibility] = useState<boolean>(false);
   const [featureState, setFeatureState] = useState<Feature<Geometry> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,6 +45,13 @@ const App: React.FC = () => {
   const toggleInfoBoxVisibility = () => {
     setInfoBoxVisibility(prevVisibility => !prevVisibility);
   };
+  const toggleHelpBoxVisibility = () => {
+    setHelpBoxVisibility(prevVisibility => !prevVisibility);
+  };
+  const hideAllBoxes = () => {
+    setInfoBoxVisibility(false);
+    setHelpBoxVisibility(false);
+  }
   
   const apiFetchAreas = () => {
     setError(null);
@@ -81,7 +94,7 @@ const App: React.FC = () => {
 
       {/* Overlays */}
       {(!apiAreaData || error || geoJsonError) && <div className="overlay gray"></div>}
-      {infoBoxVisibility && <div className="overlay blur" onClick={() => setInfoBoxVisibility(false)}></div>}
+      {(infoBoxVisibility || helpBoxVisibility) && <div className="overlay blur" onClick={hideAllBoxes}></div>}
 
       {/* Fetch box */}
       <div
@@ -123,12 +136,16 @@ const App: React.FC = () => {
         apiAreaData={apiAreaData} feature={featureState} visibility={infoBoxVisibility} onClose={toggleInfoBoxVisibility}
       />)}
 
+      {/* Help box */}
+      <HelpBox visibility={helpBoxVisibility} onClose={toggleHelpBoxVisibility} />
+
       {/* NavBar */}
       <NavBar
         refetchEvent={apiFetchAreas}
         isFetching={isFetching}
         geoLocationStatus={geoLocationStatus}
         onLocalize={() => {if (geoLocationStatus.canGetUserPosition) handleCenterMap();}}
+        onOpenHelp={toggleHelpBoxVisibility}
       />
       
       {/* Map */}

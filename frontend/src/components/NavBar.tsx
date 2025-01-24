@@ -1,16 +1,21 @@
 import React, { useState } from "react";
+import '../styles/Boxes.css';
 import { GeoLocationStatus } from "./Map";
 
 interface NavBarProps {
     refetchEvent: () => void,
     isFetching: boolean,
     onLocalize: () => void,
+    onOpenHelp: () => void,
     geoLocationStatus: GeoLocationStatus
 }
 
 const NavBar: React.FC<NavBarProps> = ({
-    refetchEvent, isFetching,
-    onLocalize, geoLocationStatus
+    refetchEvent,
+    isFetching,
+    onLocalize,
+    onOpenHelp,
+    geoLocationStatus
 }) => {
     const [btnDisabled, setBtnDisabled] = useState<boolean>(false);
     
@@ -57,7 +62,7 @@ const NavBar: React.FC<NavBarProps> = ({
             </button>
 
             {/* Help */}
-            <button>❓</button>
+            <button onClick={onOpenHelp}>❓</button>
         </div>
     );
 };

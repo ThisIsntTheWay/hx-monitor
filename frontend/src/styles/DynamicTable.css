@@ -1,0 +1,18 @@
+/* --- Table --- */
+.table-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: larger;
+  }
+  
+  td.square {
+    font-size:xx-large;
+    width: 50px; /* Set the width of the square */
+    height: 50px; /* Matches width to make it a square */
+  }
+  
+  td.text {
+    padding-left: 15px;
+    text-align: left;
+  }
