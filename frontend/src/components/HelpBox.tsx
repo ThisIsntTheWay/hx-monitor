@@ -1,7 +1,6 @@
 import React from 'react';
 import DynamicTable from './DynamicTable';
 
-/* Box */
 interface boxData {
   visibility: boolean,
   onClose: () => void,
@@ -27,9 +26,13 @@ const HelpBox: React.FC<boxData> = ({ visibility, onClose }) => {
       {/* Create a table with two cells, the left one being smaller and having a color. The text in the right cell should be left-aligned */}
       <h2>Legend</h2>
       <DynamicTable data={tableDataLegend} />
+
       <hr/>
       <h2>Buttons</h2>
       <DynamicTable data={tableDataButtons} />
+
+      <hr/>
+      <a href="disclaimer.html">Disclaimer</a>
     </div>
   );
 };

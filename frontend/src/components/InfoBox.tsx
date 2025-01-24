@@ -6,7 +6,6 @@ import {
   resolveAreaFromFeature, fetchApiTranscript, nextUpdateIsInThePast
 } from '../utils/fetchApiData';
 
-/* Box */
 interface boxData {
   apiAreaData: ApiResponseArea | null,
   feature: Feature<Geometry>,
