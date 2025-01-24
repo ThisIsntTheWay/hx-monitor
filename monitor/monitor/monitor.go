@@ -233,7 +233,7 @@ func MonitorHxAreas() error {
 	}
 
 	for _, hxArea := range hxAreas {
-		mustActNow := time.Now().After(hxArea.NextAction)
+		mustActNow := time.Now().UTC().After(hxArea.NextAction)
 		slog.Info("MONITOR",
 			"area", hxArea.Name,
 			"nextAction", hxArea.NextAction,

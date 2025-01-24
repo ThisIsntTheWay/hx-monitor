@@ -86,23 +86,19 @@ func run() error {
 		)
 	}
 
-	var lastExecTime time.Time = time.Now()
+	var lastExecTime time.Time = time.Now().UTC()
 	for {
 		nextActionableTime := getNearestNextActionTime()
-		slog.Info("MAIN",
-			"action", "compareActionTimes",
-			"nextActionableTime", nextActionableTime,
-			"lastExecTime", lastExecTime,
-		)
-
 		if lastExecTime.After(nextActionableTime) {
-			lastExecTime = time.Now()
+			lastExecTime = time.Now().UTC()
 			slog.Info("MAIN",
 				"action", "monitorHxAreas",
 				"newLastExecTime", lastExecTime,
 			)
 
 			monitor.MonitorHxAreas()
+		} else {
+			slog.Info("MAIN", "action", "nextActionTime", "waitFor", nextActionableTime.Sub(lastExecTime), "nextActionTime", nextActionableTime)
 		}
 
 		time.Sleep(sleepTime)
