@@ -73,10 +73,10 @@ func init() {
 
 func run() error {
 	// Set up config
-	slog.Info("MAIN", "message", "Setting up configuration...")
+	slog.Debug("MAIN", "event", "setUpTwilioConfig")
 	configuration.SetUpTwilioConfig()
 
-	slog.Info("MAIN", "message", "Attempting to get numbers...")
+	slog.Debug("MAIN", "event", "getNumbers")
 	numbers := caller.GetNumbers()
 	for _, v := range numbers {
 		slog.Info("MAIN",

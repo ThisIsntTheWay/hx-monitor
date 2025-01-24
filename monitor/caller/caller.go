@@ -60,7 +60,7 @@ func GetNumbers() []models.Number {
 		logger.LogErrorFatal("CALLER", "No numbers found")
 	}
 
-	slog.Info("CALLER", "message", fmt.Sprintf("Found %d number(s)", len(results)))
+	slog.Info("CALLER", "action", "getNumbers", "amount", len(results))
 	return results
 }
 
@@ -165,7 +165,7 @@ func Call(number string, startTranscription bool, startRecording bool) (CallResp
 			return CallResponse{}, fmt.Errorf("Call failed with status '%s'", *callDetails.Status)
 		}
 
-		slog.Info("CALLER", "message", fmt.Sprintf("Success calling %s", targetNumber), "call", returnObj)
+		slog.Info("CALLER", "action", "call", "success", true, "targetNumber", targetNumber, "call", returnObj)
 		return returnObj, nil
 	}
 }
@@ -190,7 +190,7 @@ func CheckCall(sid string) (CallResponse, error) {
 
 		parsedEndedTime, err := time.Parse(twilioTimeFormat, timeEndedString)
 		if err != nil {
-			slog.Error("CALLER", "message", "Failed parsing reported DateCreated", "source", timeEndedString, "error", err.Error())
+			slog.Error("CALLER", "message", "Failed parsing reported DateEnded", "source", timeEndedString, "error", err.Error())
 			parsedEndedTime = time.Now()
 		}
 

@@ -14,7 +14,7 @@ import (
 var _thisYear int = time.Now().Year()
 
 // Parses the provided transcript to an AirspaceStatus
-func parseAirspaceStates(transcript string) models.AirspaceStatus {
+func parseAirspaceStates(transcript string) (models.AirspaceStatus, error) {
 	// Default areas (Meiringen)
 	areas := []models.Area{
 		{0, false}, // CTR
@@ -107,11 +107,14 @@ func parseAirspaceStates(transcript string) models.AirspaceStatus {
 
 		for i := range activeTmas {
 			if i+1 >= len(areas) {
-				slog.Warn("PARSER",
-					"message", "This parsed active TMA exceeds this areas available TMAs",
-					"index", i, "lengthAreas", len(areas), "parsedActiveTmas", activeTmas,
+				errMsg := "This parsed active TMA exceeds this areas available TMAs (transcript bad?)"
+				slog.Error("PARSER",
+					"message", errMsg,
+					"index", i,
+					"lengthAreas", len(areas),
+					"parsedActiveTmas", activeTmas,
 				)
-				break
+				return models.AirspaceStatus{}, fmt.Errorf(errMsg)
 			}
 
 			areas[i+1].Active = true
@@ -131,7 +134,7 @@ func parseAirspaceStates(transcript string) models.AirspaceStatus {
 	return models.AirspaceStatus{
 		Areas:      areas,
 		NextUpdate: time.Unix(0, 0),
-	}
+	}, nil
 }
 
 // Get the current date but set its hours and minutes to that of an arbitrary timeString
@@ -312,7 +315,10 @@ func ParseTranscript(transcript string, referenceTime time.Time) (models.Airspac
 	var airspaceState models.AirspaceStatus
 
 	timeSegments, err := parseTimeSegments(transcript)
-	airspaceState = parseAirspaceStates(transcript)
+	if err != nil {
+		return airspaceState, err
+	}
+	airspaceState, err = parseAirspaceStates(transcript)
 	if err != nil {
 		return airspaceState, err
 	}
@@ -345,9 +351,9 @@ func ParseTranscript(transcript string, referenceTime time.Time) (models.Airspac
 	slog.Info("PARSER", "event", "finishParse", "airspaceState", airspaceState)
 
 	if nextUpdateTime.Equal(time.Unix(0, 0)) {
-		return airspaceState, fmt.Errorf("Was unable to parse NextUpdate")
+		return airspaceState, fmt.Errorf("was unable to parse NextUpdate")
 	} else if nextUpdateTime.Before(time.Now()) {
-		return airspaceState, fmt.Errorf("Now is past reported next update time")
+		return airspaceState, fmt.Errorf("now is past reported next update time")
 	}
 
 	return airspaceState, nil
