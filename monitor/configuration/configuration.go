@@ -110,12 +110,13 @@ func SetUpTwilioConfig() {
 // --------------------------
 // DATABASE
 type MongoConfiguration struct {
-	Database string
-	Username string
-	Password string
-	Host     string
-	Port     string
-	Uri      string
+	AuthDatabase string
+	Database     string
+	Username     string
+	Password     string
+	Host         string
+	Port         string
+	Uri          string
 }
 
 var mongoConfig MongoConfiguration
@@ -126,6 +127,7 @@ func GetMongoConfig() MongoConfiguration {
 
 // Set up MongoDB configuration
 func SetUpMongoConfig() {
+	mongoConfig.AuthDatabase = getEnv("MONGODB_AUTH_DATABASE", "")
 	mongoConfig.Database = getEnv("MONGODB_DATABASE", "hx")
 	mongoConfig.Username = getEnv("MONGO_USER", "")
 	mongoConfig.Password = getEnv("MONGO_PASSWORD", "")
@@ -139,12 +141,18 @@ func SetUpMongoConfig() {
 		logger.LogErrorFatal("DB", "MongoDB connection credentials are missing in environment variables")
 	}
 
+	var authDatabase string
+	if mongoConfig.AuthDatabase != "" {
+		authDatabase = fmt.Sprintf("/?authSource=%s", mongoConfig.AuthDatabase)
+	}
+
 	mongoConfig.Uri = fmt.Sprintf(
-		"mongodb://%s:%s@%s:%s",
+		"mongodb://%s:%s@%s:%s%s",
 		mongoConfig.Username,
 		mongoConfig.Password,
 		mongoConfig.Host,
 		mongoConfig.Port,
+		authDatabase,
 	)
 }
 

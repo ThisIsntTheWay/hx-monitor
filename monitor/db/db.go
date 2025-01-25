@@ -24,7 +24,12 @@ func Connect() *mongo.Client {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	slog.Info("DB", "action", "connect", "host", c.GetMongoConfig().Host, "port", c.GetMongoConfig().Port)
+	slog.Info("DB",
+		"action", "connect",
+		"host", c.GetMongoConfig().Host,
+		"port", c.GetMongoConfig().Port,
+		"authDatbase", c.GetMongoConfig().AuthDatabase,
+	)
 
 	var err error
 	client, err = mongo.Connect(ctx, options.Client().ApplyURI(c.GetMongoConfig().Uri))
