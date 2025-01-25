@@ -13,6 +13,7 @@ jobs:
     uses: ./.github/workflows/dockerhub-callable.yaml
     secrets: inherit
     with:
+      multiarch: false # whisper.cpp fails to compile on arm
       image: 'hx-monitor-service'
       dockerfile: 'monitor/Dockerfile'
       context: ./monitor
