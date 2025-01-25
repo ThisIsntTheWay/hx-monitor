@@ -41,7 +41,7 @@ const makeTooltipText = (subAreaName: string): string => {
     if (numMatches !== null) areaNum = numMatches[0];
 
     return areaType + (areaNum ? " " + areaNum : "");
-}
+};
 
 // Define appropriate styling for a boundary
 const getBoundaryStyling = (type: string): string => {
@@ -51,13 +51,13 @@ const getBoundaryStyling = (type: string): string => {
     }
 
     return "none";
-}
+};
 
-const generateTooltipContent = (feature: any, zoomLevel: number): string => {
-    let innerContent = `<span class="text main">${makeTooltipText(feature.properties.Name)}</span>`;
+const generateTooltipContent = (feature: Feature<Geometry> | undefined, zoomLevel: number): string => {
+    let innerContent = `<span class="text main">${makeTooltipText(feature?.properties?.Name)}</span>`;
     if (zoomLevel >= 12) {
-        const upper = feature.properties.Upper?.Metric?.Alt;
-        const lower = feature.properties.Lower?.Metric?.Alt;
+        const upper = feature?.properties?.Upper?.Metric?.Alt;
+        const lower = feature?.properties?.Lower?.Metric?.Alt;
         const details = [
             // Upper boundary
             `<span class="altitude upper ${getBoundaryStyling(upper.Type)}">
@@ -75,7 +75,7 @@ const generateTooltipContent = (feature: any, zoomLevel: number): string => {
                 ? `<span class="type">${lower.Type}</span>`
                 : ''
             }` */
-        ]
+        ];
         innerContent = `${innerContent}<br/><span class="text boundary">${details.join("<br/>")}</span>`;
     }
 
@@ -93,7 +93,7 @@ export const Map: React.FC<MapProps> = ({
         return {
             canGetGeolocation: false,
             canGetUserPosition: false
-        }
+        };
     });
 
     const tooltipProps: TooltipOptions = {permanent: true, direction: 'center'};
@@ -159,11 +159,11 @@ export const Map: React.FC<MapProps> = ({
                         l.unbindTooltip();
                     }
                 }
-            })
+            });
         }
     };
 
-    let userLocationIcon = L.divIcon({
+    const userLocationIcon = L.divIcon({
         className: "marker-dot" + (geoLocationStatus.canGetUserPosition ? " located" : ""),
         iconSize: [20, 20],
         iconAnchor: [15, 15],

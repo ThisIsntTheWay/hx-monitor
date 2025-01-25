@@ -33,6 +33,7 @@
   padding: 3px;
   border-radius: 1px;
   font-style: italic;
+  font-weight: bold;
 }
 
 .boundary-box .text.boundary .altitude.upper.std {

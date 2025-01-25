@@ -43,13 +43,13 @@ export const nextUpdateIsInThePast = (area: Area): boolean => {
     const now = new Date().getTime();
     const nextUpdate = new Date(area.next_action).getTime();
     return now > nextUpdate;
-}
+};
 
 const isApiUrlDefined = () => {
     if (!API_BASE_URL) {
         throw new Error("API_BASE_URL is not set, this must be fixed by the site administrator.");
     }
-}
+};
 
 export const fetchApiAreas = async (): Promise<ApiResponseArea> => {
     isApiUrlDefined();

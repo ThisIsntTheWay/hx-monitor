@@ -13,12 +13,12 @@ const HelpBox: React.FC<boxData> = ({ visibility, onClose }) => {
     { bgColor: '', textLeft: '🟩', textRight: 'Area is inactive' },
     { bgColor: '', textLeft: '🟨', textRight: 'Area is presumed active' },
     { bgColor: '', textLeft: '🟥', textRight: 'Area is active' },
-  ]
+  ];
   const tableDataButtons = [
     { bgColor: '', textLeft: '🔄', textRight: 'Refresh data' },
     { bgColor: '', textLeft: '🧭', textRight: 'Locate on map' },
     { bgColor: '', textLeft: '❓', textRight: 'Help (you are here)' },
-  ]
+  ];
 
   return (
     <div className="box popup info" hidden={!visibility}>

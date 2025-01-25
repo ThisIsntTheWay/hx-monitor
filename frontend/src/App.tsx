@@ -55,7 +55,7 @@ const App: React.FC = () => {
   const hideAllBoxes = () => {
     setInfoBoxVisibility(false);
     setHelpBoxVisibility(false);
-  }
+  };
   
   const apiFetchAreas = () => {
     setError(null);
