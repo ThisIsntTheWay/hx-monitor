@@ -1,8 +1,0 @@
-FROM python:3.12.8-alpine
-
-WORKDIR /app
-ADD process-airspaces.py main.py
-
-VOLUME [ "/public" ]
-
-ENTRYPOINT [ "python", "/app/main.py" ]
