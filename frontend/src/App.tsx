@@ -58,7 +58,6 @@ const App: React.FC = () => {
   }
   
   const apiFetchAreas = () => {
-    if (isFetching) return;
     setError(null);
     setFetching(true);
 

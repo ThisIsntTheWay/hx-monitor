@@ -8,11 +8,6 @@ import L, { LatLngTuple, LatLngBounds, TooltipOptions } from 'leaflet';
 interface UserPosition {
     lat: number;
     lng: number;
-  }
-interface UserAltitudeAndHeading {
-    alt: number | null;
-    altAcc: number | null;
-    hdn: number | null;
 }
 
 export interface GeoLocationStatus {
@@ -70,7 +65,6 @@ export const Map: React.FC<MapProps> = ({
     const [featureState, setFeatureState] = useState<Feature<Geometry> | null>(null);
     const [map, setMap] = useState<L.Map | null>(null);
     const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
-    const [userAltitudeAndHeading, setUserAltitudeAndHeading] = useState<UserAltitudeAndHeading | null>(null);
     const [geoLocationStatus, setGeoLocationStatus] = useState<GeoLocationStatus>(() => {
         return {
             canGetGeolocation: false,
@@ -91,11 +85,11 @@ export const Map: React.FC<MapProps> = ({
         if (centerMap && userPosition && map) {
             map.setView(userPosition, 11);
         }
-    }, [centerMap, userPosition]);
+    }, [centerMap, userPosition, map]);
 
     useEffect(() => {
         if (featureState) featureStateUpdate(featureState);
-    }, [featureState]);
+    });
 
     useEffect(() => {
         const intervalId = setInterval(() => {
@@ -104,11 +98,6 @@ export const Map: React.FC<MapProps> = ({
                     setUserPosition({
                         lat: position.coords.latitude,
                         lng: position.coords.longitude,
-                    });
-                    setUserAltitudeAndHeading({
-                        alt: position.coords.altitude,
-                        altAcc: position.coords.altitudeAccuracy,
-                        hdn: position.coords.heading,
                     });
 
                     const g = {
@@ -131,7 +120,7 @@ export const Map: React.FC<MapProps> = ({
         }, 5000);
     
         return () => clearInterval(intervalId);
-    }, []);
+    });
 
     const updateTooltips = (zoomLevel: number) => {
         if (map) {
@@ -149,12 +138,6 @@ export const Map: React.FC<MapProps> = ({
             })
         }
     };
-      
-    /*
-    useEffect(() => {
-        console.log(userAltitudeAndHeading);
-    }, [userAltitudeAndHeading]);
-    */
 
     let userLocationIcon = L.divIcon({
         className: "marker-dot" + (geoLocationStatus.canGetUserPosition ? " located" : ""),
