@@ -1,9 +1,10 @@
 #!/bin/bash
 set -e
 
+BASE_DIR=$(pwd)
+
 # -------------------------------
 # Build whisper
-
 if [ ! -f "libwhisper.a" ]; then
     echo "> Building whisper libs..."
 
@@ -11,7 +12,6 @@ if [ ! -f "libwhisper.a" ]; then
     CLONE_DIR="whisper.cpp"
     BINDINGS_GO_DIR="bindings/go"
     WHISPER_TARGET_TAG="v1.7.2"
-    BASE_DIR=$(pwd)
 
     if [ ! -d "$CLONE_DIR" ]; then
         git clone "$REPO_URL" "$CLONE_DIR"
