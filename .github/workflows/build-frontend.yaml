@@ -38,6 +38,7 @@ jobs:
       working-directory: frontend
     
   build-and-push-image:
+    needs: lint
     uses: ./.github/workflows/dockerhub-callable.yaml
     secrets: inherit
     with:
