@@ -1,10 +1,11 @@
 :root {
-  --warning-color: rgb(255, 200, 0);
-  --warning-color-light: rgb(250, 242, 212);
-  --error-color: rgb(255, 0, 0);
-  --error-color-light: rgb(255, 236, 236);
-  --info-color: rgb(0, 119, 255);
-  --info-color-light: rgb(236, 245, 255);
+  --color-warning: rgb(255, 200, 0);
+  --color-warning-light: rgb(250, 242, 212);
+  --color-error: rgb(255, 0, 0);
+  --color-error-light: rgb(255, 236, 236);
+  --color-info: rgb(0, 119, 255);
+  --color-info-light: rgb(236, 245, 255);
+  --color-area-horizontal-boundaries: #0073c0;
 
   text-align: center;
 }

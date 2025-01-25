@@ -43,19 +43,43 @@ const makeTooltipText = (subAreaName: string): string => {
     return areaType + (areaNum ? " " + areaNum : "");
 }
 
+// Define appropriate styling for a boundary
+const getBoundaryStyling = (type: string): string => {
+    const btSplit = type.split(" ");
+    if (btSplit.length > 1) {
+        return btSplit[1].toLowerCase();
+    }
+
+    return "none";
+}
+
 const generateTooltipContent = (feature: any, zoomLevel: number): string => {
-    const baseText = `<span class="text main">${makeTooltipText(feature.properties.Name)}</span>`;
+    let innerContent = `<span class="text main">${makeTooltipText(feature.properties.Name)}</span>`;
     if (zoomLevel >= 12) {
         const upper = feature.properties.Upper?.Metric?.Alt;
         const lower = feature.properties.Lower?.Metric?.Alt;
         const details = [
-            `⬆️ ${upper.Altitude} ${upper.Type}`,
-            `⬇️ ${lower.Altitude} ${lower.Type}`
+            // Upper boundary
+            `<span class="altitude upper ${getBoundaryStyling(upper.Type)}">
+                ${upper.Altitude}
+            </span>`, /* +
+            <span class="type">
+                ${upper.Type}
+            </span>`, */
+
+            // Lower boundary
+            `<span class="altitude lower ${getBoundaryStyling(lower.Type)}">
+                ${lower.Altitude === 0 ? "GND" : lower.Altitude}
+            </span>` /* +
+            ${lower.Altitude !== 0
+                ? `<span class="type">${lower.Type}</span>`
+                : ''
+            }` */
         ]
-        return `${baseText}<br/><span class="text details">${details.join("<br/>")}</span>`;
+        innerContent = `${innerContent}<br/><span class="text boundary">${details.join("<br/>")}</span>`;
     }
 
-    return baseText;
+    return `<div class="boundary-box">${innerContent}</span>`;
 };
 
 export const Map: React.FC<MapProps> = ({

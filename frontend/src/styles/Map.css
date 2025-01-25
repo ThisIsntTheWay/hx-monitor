@@ -6,14 +6,48 @@
     border: 3px solid white;
     box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
     background-color: gray;
-  }
-  .marker-dot.located {
-    background-color: #3388ff;
-  }
+}
+.marker-dot.located {
+  background-color: #3388ff;
+}
   
-  .leaflet-tooltip-pane .text {
-    opacity: 1;
-  }
-  .leaflet-tooltip-pane .text.main {
-    font-weight: bold;
-  }
+.leaflet-tooltip-pane .text {
+  opacity: 1;
+}
+.leaflet-tooltip-pane .text.main {
+  font-weight: bold;
+}
+
+/* Boundary text */
+.boundary-box .text {
+  font-size: 16px;
+}
+.boundary-box .text.main {
+  font-weight: bold;
+}
+.boundary-box .text.boundary {
+  text-align: left;
+  color: var(--color-area-horizontal-boundaries);
+}
+.boundary-box .text.boundary .altitude {
+  padding: 3px;
+  border-radius: 1px;
+  font-style: italic;
+}
+
+.boundary-box .text.boundary .altitude.upper.std {
+  background-color: var(--color-area-horizontal-boundaries);
+  color: white;
+}
+
+.boundary-box .text.boundary .altitude.lower.agl {
+  font-style: normal;
+}
+
+/*
+.boundary-box .text.boundary .type {
+  padding-left: 2px;
+  font-size: 12px;
+  color: black;
+}
+  */

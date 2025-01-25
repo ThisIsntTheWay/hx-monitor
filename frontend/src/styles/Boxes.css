@@ -72,18 +72,18 @@
   
   /* Other box types */
   .box.info {
-    background-color: var(--info-color-light);
-    border-color: var(--info-color);
+    background-color: var(--color-info-light);
+    border-color: var(--color-info);
     z-index: 9999;
   }
   
   .box.error {
-    background-color: var(--error-color-light);
-    border-color: var(--error-color);
+    background-color: var(--color-error-light);
+    border-color: var(--color-error);
   }
   
   .box.warning {
-    background-color: var(--warning-color-light);
-    border-color: var(--warning-color);
+    background-color: var(--color-warning-light);
+    border-color: var(--color-warning);
   }
   
