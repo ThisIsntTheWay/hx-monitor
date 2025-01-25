@@ -9,6 +9,7 @@ on:
       - '!frontend/*ocker*'
       - '!frontend/*.md'
       - '!frontend/public/**'
+      - '!frontend/static_file_delivery/**'
 
 jobs:
   lint-and-build:

@@ -8,5 +8,6 @@ The `REACT_APP_AIRPSACES_JSON_URL` env variable allows the frontend app to use a
 
 If serving it yourself:
 ```bash
-docker run -d -p 8080:80 -v $(pwd)/shv_airspaces_processed.json:/usr/share/nginx/html/shv_airspaces_processed.json nginx:alpine
+docker build . -t local-nginx:alpine-cors
+docker run -d -p 8080:80 -v $(pwd)/shv_airspaces_processed.json:/usr/share/nginx/html/shv_airspaces_processed.json local-nginx:alpine-cors
 ```
