@@ -1,10 +1,9 @@
 import axios from 'axios';
 import { Feature, Geometry } from 'geojson';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
-if (!API_BASE_URL) {
-    throw new Error('REACT_APP_API_BASE_URL is undefined.');
-}
+const defaultAirspacesJsonUrl = 'https://airspace.shv-fsvl.ch/api/v1/geojson/airspaces';
+const API_BASE_URL = window.RUNTIME_CONFIG?.API_BASE_URL || process.env.REACT_APP_API_BASE_URL;
+export const AIRPSACES_JSON_URL = window.RUNTIME_CONFIG?.AIRPSACES_JSON_URL || process.env.REACT_APP_AIRPSACES_JSON_URL || defaultAirspacesJsonUrl;
 
 export interface SubArea {
     full_name: string;
@@ -46,7 +45,15 @@ export const nextUpdateIsInThePast = (area: Area): boolean => {
     return now > nextUpdate;
 }
 
+const isApiUrlDefined = () => {
+    if (!API_BASE_URL) {
+        throw new Error("API_BASE_URL is not set, this must be fixed by the site administrator.");
+    }
+}
+
 export const fetchApiAreas = async (): Promise<ApiResponseArea> => {
+    isApiUrlDefined();
+
     try {
         const response = await axios.get(`${API_BASE_URL}/api/v1/areas`);
         if (response.data) {
@@ -62,6 +69,8 @@ export const fetchApiAreas = async (): Promise<ApiResponseArea> => {
 };
 
 export const fetchApiTranscript = async (area: string): Promise<ApiResponseTranscript> => {
+    isApiUrlDefined();
+
     try {
         const response = await axios.get(`${API_BASE_URL}/api/v1/transcripts/${area}/latest`);
         if (response?.data) {

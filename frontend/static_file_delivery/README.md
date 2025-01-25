@@ -1,6 +1,6 @@
 # Static file delivery
 As an alternative to just linking the airspaces GeoJSON diretly, this component allows to download the JSON file and trimming it to only serve the stuff we're interested in.  
-The `AIRPSACES_JSON_URL` env variable allows the frontend app to use a different airspaces JSON file.  
+The `REACT_APP_AIRPSACES_JSON_URL` env variable allows the frontend app to use a different airspaces JSON file.  
 
 ## Usage
 1. First, obtain airspaces JSON by running `process-airspaces.py`.

@@ -6,7 +6,11 @@ import './styles/Overlays.css';
 import 'leaflet/dist/leaflet.css';
 
 import { Feature, Geometry, GeoJsonObject } from 'geojson';
-import { ApiResponseArea, fetchApiAreas } from './utils/fetchApiData';
+import {
+  ApiResponseArea,
+  fetchApiAreas,
+  AIRPSACES_JSON_URL
+} from './utils/fetchApiData';
 import DisclaimerBox, { CheckIfDisclaimerMustBeShown } from './components/DisclaimerBox';
 import InfoBox from './components/InfoBox';
 import HelpBox from './components/HelpBox';
@@ -54,6 +58,7 @@ const App: React.FC = () => {
   }
   
   const apiFetchAreas = () => {
+    if (isFetching) return;
     setError(null);
     setFetching(true);
 
@@ -71,7 +76,7 @@ const App: React.FC = () => {
 
   // Get GeoJSON data
   useEffect(() => {
-    fetch('/shv_airspaces_processed.json')
+    fetch(AIRPSACES_JSON_URL)
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);

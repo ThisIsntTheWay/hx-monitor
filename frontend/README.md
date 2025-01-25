@@ -10,9 +10,13 @@ npx eslint . && npm run build
 ```bash
 # API located at ../api-export
 export REACT_APP_API_BASE_URL=http://localhost:8080
+export REACT_APP_AIRPSACES_JSON_URL=https://airspace.shv-fsvl.ch/api/v1/geojson/airspaces # Optional
+# Also see `static_file_delivery` for further info on this
+
 npm start
 ```
 
 ## SHV Airspaces
-A helper script `process-airspaces.py` will automatically download and filter the SHV-hosted GeoJSON by relevant HX areas.  
-As the frontend expects the JSON to be available at `(public)/files/shv_airspaces_processed.json`, the script - intended to be run as a docker container - must mount `./public/files` at `./files` in the container.  
+By default, airspace data is directly obtained from SHV's API.  
+However, a trimmed-down version of the JSON can be generated and used instead.  
+For further infomation, see the folder `static_file_delivery`.
