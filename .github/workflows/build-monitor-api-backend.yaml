@@ -6,6 +6,9 @@ on:
       - 'api-backend/**'
       - '!.github/**'
       - '!*.md'
+      # Relative dependencies
+      - 'monitor/models/**'
+      - 'monitor/db/**'
   workflow_dispatch:
 
 jobs:
