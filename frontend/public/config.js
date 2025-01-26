@@ -5,4 +5,5 @@
 window.RUNTIME_CONFIG = {
     API_BASE_URL: '',
     AIRPSACES_JSON_URL: '',
+    PRE_FILTER_GEO_JSON: true,
 };

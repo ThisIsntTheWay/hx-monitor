@@ -9,7 +9,7 @@ import { Feature, Geometry, GeoJsonObject } from 'geojson';
 import {
   ApiResponseArea,
   fetchApiAreas,
-  AIRPSACES_JSON_URL
+  fetchGeoJson
 } from './utils/fetchApiData';
 import DisclaimerBox, { CheckIfDisclaimerMustBeShown } from './components/DisclaimerBox';
 import InfoBox from './components/InfoBox';
@@ -75,16 +75,16 @@ const App: React.FC = () => {
 
   // Get GeoJSON data
   useEffect(() => {
-    fetch(AIRPSACES_JSON_URL)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-      })
-      .then(data => setGeoJsonData(data))
-      .catch(err => setGeoJsonError(err.message));
-  }, []);
+    const fetchData = async () => {
+      try {
+        setGeoJsonData(await fetchGeoJson());
+      } catch (err) {
+        setGeoJsonError((err as Error).message);
+      }
+    };
+
+    fetchData();
+}, []);
   
   return (
     <div className="App">

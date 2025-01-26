@@ -1,9 +1,10 @@
 import axios from 'axios';
-import { Feature, Geometry } from 'geojson';
+import { Feature, Geometry, GeoJsonObject} from 'geojson';
 
 const defaultAirspacesJsonUrl = 'https://airspace.shv-fsvl.ch/api/v1/geojson/airspaces';
 const API_BASE_URL = window.RUNTIME_CONFIG?.API_BASE_URL || process.env.REACT_APP_API_BASE_URL;
-export const AIRPSACES_JSON_URL = window.RUNTIME_CONFIG?.AIRPSACES_JSON_URL || process.env.REACT_APP_AIRPSACES_JSON_URL || defaultAirspacesJsonUrl;
+const AIRPSACES_JSON_URL = window.RUNTIME_CONFIG?.AIRPSACES_JSON_URL || process.env.REACT_APP_AIRPSACES_JSON_URL || defaultAirspacesJsonUrl;
+const PRE_FILTER_GEO_JSON = window.RUNTIME_CONFIG?.PRE_FILTER_GEO_JSON || process.env.REACT_APP_PRE_FILTER_GEO_JSON || true;
 
 export interface SubArea {
     full_name: string;
@@ -37,6 +38,38 @@ export interface ApiResponseTranscript {
     message: string;
     data: Transcript;
 }
+
+// GeoJSON
+const areaFilter = ["Meiringen"];
+export const fetchGeoJson = async (): Promise<GeoJsonObject | null> => {
+    try {
+        const response = await fetch(AIRPSACES_JSON_URL);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const data = await response.json();
+
+        if (PRE_FILTER_GEO_JSON) {
+            const filteredFeatures = data.features.filter((feature: Feature) => {
+                const name = feature?.properties?.Name.toLowerCase();
+                return (
+                    feature?.properties?.HX === true &&
+                    areaFilter.some(filterName =>
+                        name.includes(filterName.toLowerCase())
+                    )
+                );
+            });
+    
+            return { ...data, features: filteredFeatures };
+        } else {
+            return data;
+        }
+    } catch (err) {
+        console.error(err);
+        return null;
+    }
+};
+
 
 // Checks if next update is past now
 export const nextUpdateIsInThePast = (area: Area): boolean => {

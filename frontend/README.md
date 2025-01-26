@@ -11,6 +11,7 @@ npx eslint . && npm run build
 # API located at ../api-export
 export REACT_APP_API_BASE_URL=http://localhost:8080
 export REACT_APP_AIRPSACES_JSON_URL=https://airspace.shv-fsvl.ch/api/v1/geojson/airspaces # Optional
+export REACT_APP_PRE_FILTER_GEO_JSON=true # Optional - Disable if supplying a pre filtered GeoJSON yourself
 # Also see `static_file_delivery` for further info on this
 
 npm start
