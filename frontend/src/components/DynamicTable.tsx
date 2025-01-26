@@ -2,13 +2,13 @@ import React from "react";
 import "../styles/DynamicTable.css";
 
 interface TableData {
-    textLeft: string;
-    textRight: string;
-    bgColor: string;
+  textLeft: string;
+  textRight: string;
+  bgColor?: string;
 }
 
 interface TwoCellTableProps {
-    data: TableData[];
+  data: TableData[];
 }
 
 const TwoCellTable: React.FC<TwoCellTableProps> = ({ data }) => {
@@ -20,7 +20,7 @@ const TwoCellTable: React.FC<TwoCellTableProps> = ({ data }) => {
             <tr key={index}>
               <td
                 className="square"
-                style={{ backgroundColor: item.bgColor }}
+                style={{ backgroundColor: item.bgColor || 'transparent' }}
               >
                 {item.textLeft}
               </td>

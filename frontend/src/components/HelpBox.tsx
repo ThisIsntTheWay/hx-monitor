@@ -10,14 +10,14 @@ const HelpBox: React.FC<boxData> = ({ visibility, onClose }) => {
   if (!visibility) return null;
 
   const tableDataLegend = [
-    { bgColor: '', textLeft: '🟩', textRight: 'Area is inactive' },
-    { bgColor: '', textLeft: '🟨', textRight: 'Area is presumed active' },
-    { bgColor: '', textLeft: '🟥', textRight: 'Area is active' },
+    { textLeft: '🟩', textRight: 'Area is inactive' },
+    { textLeft: '🟨', textRight: 'Area is presumed active' },
+    { textLeft: '🟥', textRight: 'Area is active' },
   ];
   const tableDataButtons = [
-    { bgColor: '', textLeft: '🔄', textRight: 'Refresh data' },
-    { bgColor: '', textLeft: '🧭', textRight: 'Locate on map' },
-    { bgColor: '', textLeft: '❓', textRight: 'Help (you are here)' },
+    { textLeft: '🔄', textRight: 'Refresh data' },
+    { textLeft: '🧭', textRight: 'Locate on map' },
+    { textLeft: '❓', textRight: 'Help (you are here)' },
   ];
 
   return (
