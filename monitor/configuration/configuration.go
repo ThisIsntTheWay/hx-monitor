@@ -127,7 +127,7 @@ func GetMongoConfig() MongoConfiguration {
 
 // Set up MongoDB configuration
 func SetUpMongoConfig() {
-	mongoConfig.AuthDatabase = getEnv("MONGODB_AUTH_DATABASE", "")
+	mongoConfig.AuthDatabase = getEnv("MONGODB_AUTH_DATABASE", "admin")
 	mongoConfig.Database = getEnv("MONGODB_DATABASE", "hx")
 	mongoConfig.Username = getEnv("MONGO_USER", "")
 	mongoConfig.Password = getEnv("MONGO_PASSWORD", "")
