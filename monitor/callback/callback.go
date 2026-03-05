@@ -21,12 +21,14 @@ import (
 	"golang.ngrok.com/ngrok/config"
 )
 
-var _TranscriptionCallbacks []TranscriptionCallback
-var statusCallbacks []StatusCallback
+var (
+	_TranscriptionCallbacks []TranscriptionCallback
+	statusCallbacks         []StatusCallback
 
-// To prevent mapCallSidToNumber() from failing, at the very least 'initiated' can't be ignored
-var ignoreCallStates = []string{"queued", "ringing", "in-progress"}
-var badCallStates = []string{"busy", "no-answer", "canceled", "failed"}
+	// To prevent mapCallSidToNumber() from failing, at the very least 'initiated' can't be ignored
+	ignoreCallStates = []string{"queued", "ringing", "in-progress"}
+	badCallStates    = []string{"busy", "no-answer", "canceled", "failed"}
+)
 
 type StatusCallback struct {
 	CallSID        string
