@@ -73,6 +73,9 @@ services:
       TWILIO_API_SECRET: ${TWILIO_API_SECRET:-}
       TWILIO_CALL_FROM: ${TWILIO_CALL_FROM:-}
       TWILIO_CALL_LENGTH: ${TWILIO_CALL_LENGTH:-38}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
+      GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION:-}
     depends_on:
       mongodb:
         condition: service_healthy
