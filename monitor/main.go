@@ -11,6 +11,8 @@ import (
 	"github.com/thisisnttheway/hx-monitor/db"
 	"github.com/thisisnttheway/hx-monitor/logger"
 	"github.com/thisisnttheway/hx-monitor/monitor"
+	"github.com/thisisnttheway/hx-monitor/rmq"
+	"github.com/thisisnttheway/hx-monitor/worker"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -24,7 +26,7 @@ func preFlightChecks() {
 	if !exists {
 		_, exists := os.LookupEnv("TWILIO_API_CALLBACK_URL")
 		if !exists {
-			logger.LogErrorFatal("MAIN", "Neither NGROK_AUTHTOKEN auth token or TWILIO_API_CALLBACK_URL is set")
+			logger.LogErrorFatal("MAIN", "Neither NGROK_AUTHTOKEN auth token nor TWILIO_API_CALLBACK_URL are set")
 		}
 	}
 }
@@ -65,6 +67,16 @@ func init() {
 	preFlightChecks()
 	db.Connect()
 
+	// Initialize RabbitMQ
+	rabbitmqURL := os.Getenv("RABBITMQ_URL")
+	if rabbitmqURL == "" {
+		rabbitmqURL = "amqp://guest:guest@localhost:5672/"
+	}
+
+	if err := rmq.Initialize(rabbitmqURL); err != nil {
+		logger.LogErrorFatal("MAIN", "Failed to initialize RabbitMQ: "+err.Error())
+	}
+
 	// Callback URL handler
 	go func() {
 		callback.Serve()
@@ -84,6 +96,21 @@ func run() error {
 			"number", v.Number,
 			"name", v.Name,
 		)
+	}
+
+	// Start RabbitMQ workers
+	slog.Info("MAIN", "action", "startWorkers")
+	if err := worker.StartCallTaskWorker(); err != nil {
+		slog.Error("MAIN", "action", "StartCallTaskWorker", "error", err)
+		return err
+	}
+	if err := worker.StartCallCompletedConsumer(); err != nil {
+		slog.Error("MAIN", "action", "StartCallCompletedConsumer", "error", err)
+		return err
+	}
+	if err := worker.StartDeadLetterConsumer(); err != nil {
+		slog.Error("MAIN", "action", "StartDeadLetterConsumer", "error", err)
+		return err
 	}
 
 	var lastExecTime time.Time = time.Now().UTC()
