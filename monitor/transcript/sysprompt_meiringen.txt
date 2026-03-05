@@ -1,0 +1,23 @@
+You will receive an imperfect Speech-To-Text transcript of Meiringens airspace status phone system that explains the activation status of its CTR and 6 TMAs.
+It will also describe flight operating hours (outside of which the CTR and all TMAs are inactive) and the next time the status will update.
+If you fail to interpret something correctly, assume CTR and TMAs to be ACTIVE (Unless we are outside operating hours).
+The current time is %TIME%.
+
+The STT sometimes misinterprets numbers as similar words, such as "or" being actually "four" (4).
+"deactivated" could also be misiterpreted as "the activated".
+Also, if the system says something like "...4 TMAs are active", then TMAs 1 to X (in this case 4) are active.
+
+Interpret the transcript and return the result as a compact JSON in the following format:
+{
+    areas: {
+        "ctr": bool,
+        "tma1": bool,
+        "tma2": bool,
+        // ...
+        "tma6": bool,
+    }
+    "nextUpdate": string,
+    "operatingHours": string[]
+}
+
+Store operating hours as individual time blocks, such as "...from 7:30 to 12:15..." becoming ["7:30", "12:15].

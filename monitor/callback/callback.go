@@ -10,15 +10,12 @@ import (
 	"slices"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/thisisnttheway/hx-monitor/caller"
 	c "github.com/thisisnttheway/hx-monitor/configuration"
 	"github.com/thisisnttheway/hx-monitor/db"
 	"github.com/thisisnttheway/hx-monitor/logger"
 	"github.com/thisisnttheway/hx-monitor/models"
-	"github.com/thisisnttheway/hx-monitor/transcript"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.ngrok.com/ngrok"
 	"golang.ngrok.com/ngrok/config"
@@ -294,74 +291,6 @@ func handleTransciptionsCallback(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Event received"))
 }
 
-// Handler for /recording
-func handleRecordingsCallback(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Check if request has been sent from Tilio
-	twilioSignature := r.Header["X-Twilio-Signature"]
-	//userAgent := r.Header["User-Agent"] // TwilioProxy/1.1
-	if twilioSignature == nil {
-		http.Error(w, "Denied callback", http.StatusForbidden)
-		return
-	}
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Failed to parse form", http.StatusBadRequest)
-		return
-	}
-
-	var recording RecordingCallback
-	recording.CallSid = r.FormValue("CallSid")
-	recording.RecordingSid = r.FormValue("RecordingSid")
-	recording.RecordingStatus = r.FormValue("RecordingStatus")
-	recording.RecordingUrl = r.FormValue("RecordingUrl")
-
-	if strings.ToLower(recording.RecordingStatus) == "completed" {
-		filePath, err := DownloadRecording(
-			recording.RecordingSid,
-			recording.RecordingUrl,
-		)
-		if err != nil {
-			slog.Error("CALLBACK",
-				"action", "downloadRecording",
-				"error", err,
-			)
-		} else {
-			slog.Info("CALLBACK",
-				"event", "downloadRecordingComplete",
-				"filePath", filePath,
-			)
-		}
-
-		err = caller.DeleteRecording(recording.RecordingSid)
-		if err != nil {
-			slog.Warn("CALLER",
-				"action", "deleteRecording",
-				"error", err,
-			)
-		}
-
-		// Transcribe recording with whisper
-		finalTranscript, err := transcript.Transcribe(filePath)
-		if err != nil {
-			logger.LogErrorFatal("CALLBACK", fmt.Sprintf("Failed to transcribe recording: %v", err))
-		}
-
-		err = UpdateHxAreaInDatabase(
-			finalTranscript,
-			recording.CallSid,
-			time.Now(),
-		)
-		if err != nil {
-			logger.LogErrorFatal("CALLBACK", fmt.Sprintf("Failed UpdateHxAreaInDatabase: %v", err))
-		}
-	}
-}
-
 // Assemble a completed transcription by its individual parts and return it
 func handleTranscriptionStopped(finalTranscription TranscriptionCallback) string {
 	// Filter array for all items whose "callSid" matches the final transcription's callSid and sort
@@ -400,7 +329,6 @@ func handleTranscriptionStopped(finalTranscription TranscriptionCallback) string
 func Serve() {
 	http.HandleFunc(c.UrlConfigs.Calls, handleCallsCallback)
 	http.HandleFunc(c.UrlConfigs.Transcriptions, handleTransciptionsCallback)
-	http.HandleFunc(c.UrlConfigs.Recordings, handleRecordingsCallback)
 
 	// ngrok automatically uses the env var so no need to pass the actual value anywhere
 	_, exists := os.LookupEnv("NGROK_AUTHTOKEN")

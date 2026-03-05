@@ -1,6 +1,7 @@
 package callback
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -12,8 +13,6 @@ import (
 	"github.com/thisisnttheway/hx-monitor/transcript"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 // Searches the DB for a number
@@ -101,37 +100,33 @@ func setBadHxStatus(referenceArea string, errorReason string) error {
 	return err
 }
 
-// Creates HX sub areas based on an AirspaceStatus for a reference area
-func createHxSubAreas(airspaceStatus models.AirspaceStatus, referenceArea string) []models.HXSubArea {
+// Creates HX sub areas for Meiringen
+func createHxSubAreasMeiringen(airspaceStatus models.AirspaceMeiringenStatus, referenceArea string) []models.HXSubArea {
 	var result []models.HXSubArea
 
-	for _, area := range airspaceStatus.Areas {
-		var subArea models.HXSubArea
-		var areaType string
-		if area.Index > 0 {
-			areaType = "TMA"
+	areasMap := make(map[string]bool)
+	areasMap["CTR"] = airspaceStatus.Areas.CTR
+	areasMap["TMA1"] = airspaceStatus.Areas.TMA1
+	areasMap["TMA2"] = airspaceStatus.Areas.TMA2
+	areasMap["TMA3"] = airspaceStatus.Areas.TMA3
+	areasMap["TMA4"] = airspaceStatus.Areas.TMA4
+	areasMap["TMA5"] = airspaceStatus.Areas.TMA5
+	areasMap["TMA6"] = airspaceStatus.Areas.TMA6
+
+	// The name for HxSubArea must be "<type> <areaName> [index] HX" to be able to transformed correctly.
+	// The frontend will expect these keys to be formatted in a particular way.
+	for k, active := range areasMap {
+		var fullName string
+		if k == "CTR" {
+			fullName = "CTR Meiringen HX"
 		} else {
-			areaType = "CTR"
+			fullName = fmt.Sprintf("TMA Meiringen %s HX", strings.TrimPrefix(k, "TMA"))
 		}
-
-		// Assemble name based on GeoJSON format for object names: <Type> <Area> [Index] HX
-		// Examples: TMA Meiringen 1 HX/CTR Meiringen HX
-
-		// Capitalizes first letter (i.e. "meiringen" -> "Meiringen")
-		adjustedRefArea := cases.Title(language.English, cases.NoLower).String(referenceArea)
-		fullName := fmt.Sprintf("%s %s", areaType, adjustedRefArea)
-		if area.Index > 0 {
-			fullName = fmt.Sprintf("%s %d", fullName, area.Index)
-		}
-		fullName = fullName + " HX"
-
-		name := strings.Replace(strings.ToLower(fullName), " ", "-", -1)
-
-		subArea.FullName = fullName
-		subArea.Name = name
-		subArea.Active = area.Active
-
-		result = append(result, subArea)
+		result = append(result, models.HXSubArea{
+			FullName: fullName,
+			Name:     strings.ReplaceAll(strings.ToLower(fullName), " ", "-"),
+			Active:   active,
+		})
 	}
 
 	return result
@@ -175,8 +170,10 @@ func sanitizePartialTranscriptions(s []TranscriptionCallback) []TranscriptionCal
 }
 
 // Updates an HX area in DB based on parsed transcript data
+// Important: Only equipped to handle meiringen at this moment
 func UpdateHxAreaInDatabase(finalTranscript string, callSid string, timestamp time.Time) error {
-	// Update HX area
+	ctx := context.TODO()
+
 	// 1. Get CallSid -> Get Number -> Get HXArea
 	// 2. Get HXAreas -> Update them
 	// 2. Update hx_areas and hx_sub_areas in DB
@@ -205,15 +202,14 @@ func UpdateHxAreaInDatabase(finalTranscript string, callSid string, timestamp ti
 	}
 
 	success, lastError := true, ""
-	airspaceStatus, err := transcript.ParseTranscript(finalTranscript, timestamp)
+
+	// ToDo, once other parsers are set up: Determine what parser to use based on phone number
+	airspaceStatus, err := transcript.ParseAirspaceTranscriptMeiringen(finalTranscript, ctx)
 	slog.Debug("CALLBACK", "event", "generatedAirspaceStatus", "airspaceStatus", airspaceStatus)
 	if err != nil {
 		success, lastError = false, err.Error()
 	}
-
-	area.NextAction = airspaceStatus.NextUpdate
-	area.FlightOperatingHours = airspaceStatus.OperatingHours
-	area.SubAreas = createHxSubAreas(airspaceStatus, area.Name)
+	area.SubAreas = createHxSubAreasMeiringen(airspaceStatus, area.Name)
 
 	area.LastActionSuccess = success
 	area.LastError = lastError
