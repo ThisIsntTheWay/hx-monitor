@@ -73,6 +73,10 @@ func ParseAirspaceTranscriptMeiringen(transcript string, ctx context.Context) (m
 		return areaMeiringenStatus, fmt.Errorf("could not unmarshal AI response: %v", err)
 	}
 
+	// Ensure NextUpdate is in the swiss timezone
+	loc, _ := time.LoadLocation("Europe/Zurich")
+	areaMeiringenStatus.NextUpdate = areaMeiringenStatus.NextUpdate.In(loc)
+
 	o, _ := json.Marshal(areaMeiringenStatus)
 	slog.Debug("PARSER", "airspaceStatusJson", string(o))
 
