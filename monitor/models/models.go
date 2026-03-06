@@ -71,8 +71,3 @@ type AreaMeiringen struct {
 	TMA5 bool `json:"tma5"`
 	TMA6 bool `json:"tma6"`
 }
-
-type TimeSegment struct {
-	Type  string
-	Times []time.Time
-}
