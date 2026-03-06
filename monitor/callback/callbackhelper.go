@@ -210,6 +210,8 @@ func UpdateHxAreaInDatabase(finalTranscript string, callSid string, timestamp ti
 		success, lastError = false, err.Error()
 	}
 	area.SubAreas = createHxSubAreasMeiringen(airspaceStatus, area.Name)
+	area.NextAction = airspaceStatus.NextUpdate
+	area.FlightOperatingHours = airspaceStatus.OperatingHours
 
 	area.LastActionSuccess = success
 	area.LastError = lastError
