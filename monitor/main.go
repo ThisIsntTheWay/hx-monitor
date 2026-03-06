@@ -95,8 +95,8 @@ func run() error {
 
 			monitor.MonitorHxAreas()
 		} else {
-			slog.Info("MAIN", "action", "nextActionTime",
-				"waitFor", time.Until(nextActionableTime),
+			slog.Info("MAIN", "action", "awaitNextAction",
+				"eta", time.Until(nextActionableTime),
 				"nextActionTime", nextActionableTime,
 			)
 		}
