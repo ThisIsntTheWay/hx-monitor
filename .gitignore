@@ -9,18 +9,9 @@ hx-monitor-api
 # Other
 .env
 **/*utput*.json
-libwhisper.a
-whisper.h
-whisper.cpp
-recordings
-models_whisper/
 
 # Frontend
 frontend/build
 frontend/files
 node_modules/
 shv*.json
-
-# Whisper models
-*.bin
-*.en*

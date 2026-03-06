@@ -17,13 +17,14 @@ type UrlConfig struct {
 	Recordings     string
 }
 
-var UrlConfigs UrlConfig = UrlConfig{
-	Calls:          "/calls",
-	Transcriptions: "/transcription",
-	Recordings:     "/recording",
-}
-
-var CallbackUrl string
+var (
+	CallbackUrl string
+	UrlConfigs  UrlConfig = UrlConfig{
+		Calls:          "/calls",
+		Transcriptions: "/transcription",
+		Recordings:     "/recording",
+	}
+)
 
 func SetCallbackUrl(value string) {
 	CallbackUrl = value

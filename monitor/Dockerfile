@@ -1,13 +1,13 @@
-FROM golang:1.23.3-alpine AS build
+FROM golang:1.24-alpine AS build
 
-RUN apk add --no-cache git make g++
+WORKDIR /go/src/app/hx-monitor/monitor
+COPY . .
 
-COPY . /app
-WORKDIR /app
-RUN /bin/sh /app/build.sh
+RUN go clean; go mod tidy
+RUN CGO_ENABLED=0 go build -o /go/bin/app
 
-# Required for whisper to work
-COPY --from=mwader/static-ffmpeg:7.1 /ffmpeg /usr/local/bin/
-COPY --from=mwader/static-ffmpeg:7.1 /ffprobe /usr/local/bin/
+# -----------------------------------
+FROM gcr.io/distroless/static-debian12
 
-CMD ["/app/hx-monitor"] 
+COPY --from=build /go/bin/app /
+CMD ["/app"]

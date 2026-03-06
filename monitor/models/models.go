@@ -56,18 +56,18 @@ type Transcript struct {
 
 // ---------------------------------------------
 // PARSER
-type AirspaceStatus struct {
-	Areas          []Area      `json:"areas"`
-	NextUpdate     time.Time   `json:"nextUpdate"`
-	OperatingHours []time.Time `json:"operatingHours"`
+type AirspaceMeiringenStatus struct {
+	Areas          AreaMeiringen `json:"areas"`
+	NextUpdate     time.Time     `json:"nextUpdate"`
+	OperatingHours []time.Time   `json:"operatingHours"`
 }
 
-type Area struct {
-	Index  int  `json:"index"`
-	Active bool `json:"active"`
-}
-
-type TimeSegment struct {
-	Type  string
-	Times []time.Time
+type AreaMeiringen struct {
+	CTR  bool `json:"ctr"`
+	TMA1 bool `json:"tma1"`
+	TMA2 bool `json:"tma2"`
+	TMA3 bool `json:"tma3"`
+	TMA4 bool `json:"tma4"`
+	TMA5 bool `json:"tma5"`
+	TMA6 bool `json:"tma6"`
 }

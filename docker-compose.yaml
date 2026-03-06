@@ -1,0 +1,85 @@
+services:
+  mongodb:
+    image: mongo:8.2
+    container_name: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: hx
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api-backend:
+    build:
+      context: .
+      dockerfile: ./api-backend/Dockerfile
+    container_name: api-backend
+    ports:
+      - "8080:8080"
+    environment:
+      LISTEN_PORT: "8080"
+      MONGO_HOST: mongodb
+      MONGO_PORT: "27017"
+      MONGO_USER: admin
+      MONGO_PASSWORD: password
+      MONGODB_AUTH_DATABASE: admin
+      MONGODB_DATABASE: hx
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ./Dockerfile
+    container_name: frontend
+    ports:
+      - "80:80"
+    environment:
+      REACT_APP_API_BASE_URL: http://localhost:8080
+      REACT_APP_AIRSPACES_JSON_URL: https://airspace.shv-fsvl.ch/api/v1/geojson/airspaces
+      REACT_APP_PRE_FILTER_GEO_JSON: "true"
+    depends_on:
+      - api-backend
+    restart: unless-stopped
+
+  monitor:
+    build:
+      context: ./monitor
+      dockerfile: ./Dockerfile
+    container_name: monitor
+    environment:
+      MONGO_HOST: mongodb
+      MONGO_PORT: "27017"
+      MONGO_USER: admin
+      MONGO_PASSWORD: password
+      MONGODB_AUTH_DATABASE: admin
+      MONGODB_DATABASE: hx
+      # Callback configuration - set only one of these
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+      TWILIO_API_CALLBACK_URL: ${TWILIO_API_CALLBACK_URL:-}
+      # Twilio configuration - required if not using NGROK_AUTHTOKEN
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_API_KEY: ${TWILIO_API_KEY:-}
+      TWILIO_API_SECRET: ${TWILIO_API_SECRET:-}
+      TWILIO_CALL_FROM: ${TWILIO_CALL_FROM:-}
+      TWILIO_CALL_LENGTH: ${TWILIO_CALL_LENGTH:-38}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
+      GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION:-}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:

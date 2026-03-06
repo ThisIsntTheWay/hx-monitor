@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/thisisnttheway/hx-monitor/caller"
@@ -27,44 +25,21 @@ type CallConfiguration struct {
 	DoRecording     bool
 }
 
-var _callConfiguration CallConfiguration
+var (
+	_callConfiguration CallConfiguration
 
-// { "<area>": <num_fails> }
-var _areaFailureCounts map[string]int8 = make(map[string]int8)
+	// { "<area>": <num_fails> }
+	_areaFailureCounts map[string]int8 = make(map[string]int8)
 
-// { "<area>": <being_processed> }
-var _areaProcessingQueue map[string]bool = make(map[string]bool)
-
-var maxFailsPerArea int8 = 3
-var onErrorNextActionDelay time.Duration = 30 * time.Minute
+	// { "<area>": <being_processed> }
+	_areaProcessingQueue   map[string]bool = make(map[string]bool)
+	maxFailsPerArea        int8            = 3
+	onErrorNextActionDelay time.Duration   = 30 * time.Minute
+)
 
 func init() {
-	// Looks up and returns an env vars value as bool. Returns s otherwise.
-	var check = func(e string, s bool) bool {
-		env, exists := os.LookupEnv(e)
-		if exists {
-			b, err := strconv.ParseBool(env)
-			if err != nil {
-				return false
-			} else {
-				return b
-			}
-		} else {
-			return s
-		}
-	}
-
-	t := check("USE_TWILIO_TRANSCRIPTION", true)
-	w := check("USE_WHISPER_TRANSCRIPTION", false)
-	if t && w {
-		logger.LogErrorFatal(
-			"MONITOR",
-			"Both USE_TWILIO_TRANSCRIPTION and USE_WHISPER_TRANSCRIPTION are set",
-		)
-	}
-
-	_callConfiguration.DoTranscription = t
-	_callConfiguration.DoRecording = w
+	_callConfiguration.DoTranscription = true
+	_callConfiguration.DoRecording = false
 }
 
 func GetAreaProcessingState(areaName string) bool {
