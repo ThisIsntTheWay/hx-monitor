@@ -16,7 +16,8 @@ import (
 )
 
 var (
-	model string = "gemini-3-flash-preview"
+	model       string  = "gemini-3-flash-preview"
+	temperature float32 = 0.1
 
 	//go:embed sysprompt_meiringen.txt
 	syspromptMeiringen string
@@ -34,11 +35,15 @@ func ParseAirspaceTranscriptMeiringen(transcript string, ctx context.Context) (m
 
 	syspromptMeiringen = strings.Replace(syspromptMeiringen, "%TIME%", time.Now().Format("15:04:05"), 1)
 	config := &genai.GenerateContentConfig{
+		Temperature:      &temperature,
+		ResponseMIMEType: "application/json",
 		SystemInstruction: &genai.Content{
 			Parts: []*genai.Part{
 				{Text: syspromptMeiringen},
 			},
 		},
+		//ResponseSchema: &genai.Schema{} - We can't pass models.AirspaceMeiringenStatus to it :(
+		// However, the AI generally seems to respond with a correct schema
 	}
 
 	slog.Info("PARSER", "action", "startGeneration", "model", model, "input", transcript)
@@ -49,6 +54,7 @@ func ParseAirspaceTranscriptMeiringen(transcript string, ctx context.Context) (m
 		config,
 	)
 	if err != nil {
+		slog.Error("PARSER", "action", "startGeneration", "err", err)
 		return areaMeiringenStatus, fmt.Errorf("could not generate content from AI: %v", err)
 	}
 
