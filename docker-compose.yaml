@@ -76,6 +76,8 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
       GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION:-}
+    ports:
+    - "8081:8080" # Callback
     depends_on:
       mongodb:
         condition: service_healthy
