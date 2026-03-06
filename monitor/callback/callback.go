@@ -333,7 +333,9 @@ func Serve() {
 	http.HandleFunc(c.UrlConfigs.Transcriptions, handleTransciptionsCallback)
 
 	// ngrok automatically uses the env var so no need to pass the actual value anywhere
-	_, exists := os.LookupEnv("NGROK_AUTHTOKEN")
+	v, exists := os.LookupEnv("NGROK_AUTHTOKEN")
+	exists = exists && v != ""
+
 	slog.Info("CALLBACK", "action", "startWebserver", "useNgrok", exists)
 	if exists {
 		listener, err := ngrok.Listen(
