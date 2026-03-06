@@ -3,6 +3,7 @@ package configuration
 import (
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"strconv"
 
@@ -147,10 +148,10 @@ func SetUpMongoConfig() {
 		authDatabase = fmt.Sprintf("/?authSource=%s", mongoConfig.AuthDatabase)
 	}
 
+	escapedCredentials := url.UserPassword(mongoConfig.Username, mongoConfig.Password).String()
 	mongoConfig.Uri = fmt.Sprintf(
-		"mongodb://%s:%s@%s:%s%s",
-		mongoConfig.Username,
-		mongoConfig.Password,
+		"mongodb://%s@%s:%s%s",
+		escapedCredentials,
 		mongoConfig.Host,
 		mongoConfig.Port,
 		authDatabase,
