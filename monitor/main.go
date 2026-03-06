@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log/slog"
 	"os"
 	"time"
@@ -15,7 +16,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var sleepTime time.Duration = 30 * time.Second
+var (
+	sleepTime time.Duration = 30 * time.Second
+	forceCall *bool
+)
 
 // Check if certain env vars have been set
 func preFlightChecks() {
@@ -86,9 +90,11 @@ func run() error {
 		)
 	}
 
+	// Main loop
 	for {
 		nextActionableTime := getNearestNextActionTime()
-		if time.Now().After(nextActionableTime) {
+		if *forceCall || time.Now().After(nextActionableTime) {
+			*forceCall = false
 			slog.Info("MAIN",
 				"action", "monitorHxAreas",
 			)
@@ -106,6 +112,9 @@ func run() error {
 }
 
 func main() {
+	forceCall = flag.Bool("force-call", false, "Force immediate processing of areas")
+	flag.Parse()
+
 	err := run()
 	if err != nil {
 		slog.Error("MAIN", "error", err)
