@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	model       string  = "gemini-3-flash-preview"
+	model       string  = "gemini-flash-lite-latest"
 	temperature float32 = 0.1
 
 	//go:embed sysprompt_meiringen.txt
@@ -24,16 +24,19 @@ var (
 )
 
 func init() {
-	if v, exists := os.LookupEnv("GOOGLE_AI_MODEL"); exists {
+	v, exists := os.LookupEnv("GOOGLE_AI_MODEL")
+	if exists {
 		model = v
 	}
+
+	slog.Info("PARSER", "aiModelToUse", model, "fromEnvVar", exists)
 }
 
 // Parse Meiringens airspace status phone system
 func ParseAirspaceTranscriptMeiringen(transcript string, ctx context.Context) (models.AirspaceMeiringenStatus, error) {
 	areaMeiringenStatus := models.AirspaceMeiringenStatus{}
 
-	syspromptMeiringen = strings.Replace(syspromptMeiringen, "%TIME%", time.Now().Format("15:04:05"), 1)
+	syspromptMeiringen = strings.Replace(syspromptMeiringen, "%TIME%", time.Now().Format(time.RFC1123Z), 1)
 	config := &genai.GenerateContentConfig{
 		Temperature:      &temperature,
 		ResponseMIMEType: "application/json",
@@ -66,8 +69,12 @@ func ParseAirspaceTranscriptMeiringen(transcript string, ctx context.Context) (m
 
 	err = json.Unmarshal([]byte(result.Text()), &areaMeiringenStatus)
 	if err != nil {
+		slog.Error("PARSER", "action", "unmarshalGenAiContent", "err", err)
 		return areaMeiringenStatus, fmt.Errorf("could not unmarshal AI response: %v", err)
 	}
+
+	o, _ := json.Marshal(areaMeiringenStatus)
+	slog.Debug("PARSER", "airspaceStatusJson", string(o))
 
 	return areaMeiringenStatus, nil
 }
