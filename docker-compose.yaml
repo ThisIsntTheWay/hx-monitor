@@ -44,9 +44,9 @@ services:
     ports:
       - "80:80"
     environment:
-      REACT_APP_API_BASE_URL: http://localhost:8080
-      REACT_APP_AIRSPACES_JSON_URL: https://airspace.shv-fsvl.ch/api/v1/geojson/airspaces
-      REACT_APP_PRE_FILTER_GEO_JSON: "true"
+      REACT_APP_API_BASE_URL: ${REACT_APP_API_BASE_URL:-}
+      REACT_APP_AIRSPACES_JSON_URL: ${REACT_APP_AIRSPACES_JSON_URL:-https://airspace.shv-fsvl.ch/api/v1/geojson/airspaces}
+      REACT_APP_PRE_FILTER_GEO_JSON: ${REACT_APP_PRE_FILTER_GEO_JSON:-"true"}
     depends_on:
       - api-backend
     restart: unless-stopped
