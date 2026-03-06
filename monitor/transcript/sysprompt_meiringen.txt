@@ -20,4 +20,6 @@ Interpret the transcript and return the result as a compact JSON in the followin
     "operatingHours": string[]
 }
 
+Store nextUpdate as a date-time string formatted in UTC.
 Store operating hours as individual time blocks, such as "...from 7:30 to 12:15..." becoming ["7:30", "12:15].
+Caution: If the system says something like "... active again on <Day> from 7:30 local time", do not store any operating hours.
