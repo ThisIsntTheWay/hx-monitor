@@ -47,9 +47,9 @@ func createTwilioClient() *twilio.RestClient {
 		}
 	}
 
-	// Twilio region will be acquired by twilio-go by looking up TWILIO_REGION
+	// Twilio region and edge will be acquired by twilio-go by looking up TWILIO_REGION & TWILIO_EDGE
 	client := twilio.NewRestClientWithParams(twilioClientParams)
-	slog.Info("CONFIG", "region", client.Region, "edge", client.Edge)
+	slog.Info("CONFIG", "twilioRegion", client.Region, "twilioEdge", client.Edge)
 
 	return client
 }
