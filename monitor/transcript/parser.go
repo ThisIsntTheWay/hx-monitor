@@ -77,6 +77,55 @@ func ParseAirspaceTranscriptMeiringen(transcript string, ctx context.Context) (m
 	loc, _ := time.LoadLocation("Europe/Zurich")
 	areaMeiringenStatus.NextUpdate = areaMeiringenStatus.NextUpdate.In(loc)
 
+	// Reprompt if nextUpdate is in the past (or now)
+	now := time.Now()
+	if !areaMeiringenStatus.NextUpdate.After(now) {
+		slog.Warn("PARSER", "action", "nextUpdateInPast", "nextUpdate", areaMeiringenStatus.NextUpdate, "now", now)
+
+		// Reprompt the model to reinterpret just the nextUpdate field
+		repromptConfig := &genai.GenerateContentConfig{
+			Temperature: &temperature,
+			SystemInstruction: &genai.Content{
+				Parts: []*genai.Part{
+					{Text: "You are a Swiss airspace status parser. Determine when the next update will be from the following transcript. The current time is " + now.Format(time.RFC1123Z) + ""},
+				},
+			},
+			ResponseMIMEType: "application/json",
+			ResponseSchema: &genai.Schema{
+				Type: "object",
+				Properties: map[string]*genai.Schema{
+					"nextUpdate": {
+						Type:        "string",
+						Description: "RFC3339 formatted timestamp",
+					},
+				},
+				Required: []string{"nextUpdate"},
+			},
+		}
+
+		slog.Info("PARSER", "action", "repromptForNextUpdate", "transcript", transcript)
+		repromptResult, err := genaiClient.Models.GenerateContent(
+			ctx,
+			model,
+			genai.Text(transcript),
+			repromptConfig,
+		)
+		if err != nil {
+			slog.Error("PARSER", "action", "repromptForNextUpdate", "err", err)
+		} else {
+			var nextUpdateData struct {
+				NextUpdate time.Time `json:"nextUpdate"`
+			}
+			err = json.Unmarshal([]byte(repromptResult.Text()), &nextUpdateData)
+			if err != nil {
+				slog.Error("PARSER", "action", "unmarshalNextUpdateReprompt", "err", err)
+			} else {
+				areaMeiringenStatus.NextUpdate = nextUpdateData.NextUpdate.In(loc)
+				slog.Info("PARSER", "action", "nextUpdateRepromptSucceeded", "newNextUpdate", areaMeiringenStatus.NextUpdate)
+			}
+		}
+	}
+
 	o, _ := json.Marshal(areaMeiringenStatus)
 	slog.Debug("PARSER", "airspaceStatusJson", string(o))
 

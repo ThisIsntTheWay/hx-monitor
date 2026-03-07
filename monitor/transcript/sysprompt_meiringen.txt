@@ -27,7 +27,7 @@ Return ONLY a valid JSON object. No prose. No markdown blocks.
         "tma5": bool,
         "tma6": bool
     },
-    "nextUpdate": "RFC3339 String, will be converted into a golang time.Time!",
+    "nextUpdate": "RFC3339 string, will be converted into a golang time.Time!",
     "operatingHours": ["HH:MM", "HH:MM"] 
 }
 
