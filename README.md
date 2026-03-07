@@ -14,14 +14,14 @@ _Not all areas are implemented (yet?)_
   - Uses `react-leaflet` in conjuction with the SHV hosted [airspace GeoJSON](https://airspace.shv-fsvl.ch/doc).
 
 ## How it works
-The `monitor` component continuously updates the state of each area by robocalling each areas audio tapes (using Twilio).  
+The `monitor` component continuously updates the state of each area by robocalling each areas automated phone systems (using Twilio).  
 The call then gets transcribed and the transcript parsed.  
-The result of this parsing will be stored in a MongoDB.
+The result of this parsing will be stored in a MongoDB database.
 
-The `api-backend` exposes the MongoDB through a read-only API.
+The `api-backend` exposes the database through a read-only API.
 
 The `frontend` consumes both the SHV GeoJSON and the `api-backend` to show the user, on a map, where all airspaces are and whether or not they are active.  
-Those airspaces can be interacted with.
+By clicking on an airspace, additional details can be viewed such as update times and transcripts.  
 
 ## Usage
 Set env vars:
@@ -96,3 +96,6 @@ export TWILIO_API_SECRET=ghi
 export USE_TWILIO_TRANSCRIPTION=1
 export USE_WHISPER_TRANSCRIPTION=0
 ```
+
+## Attributions
+- [Airspace favicon](https://thenounproject.com/icon/airspace-1638214/) by [Tim Torres](https://timtorr.es) (from [thenounproject.com](https://thenounproject))
