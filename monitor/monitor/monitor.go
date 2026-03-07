@@ -34,7 +34,7 @@ var (
 	// { "<area>": <being_processed> }
 	_areaProcessingQueue   map[string]bool = make(map[string]bool)
 	maxFailsPerArea        int8            = 3
-	onErrorNextActionDelay time.Duration   = 30 * time.Minute
+	onErrorNextActionDelay time.Duration   = 5 * time.Minute
 )
 
 func init() {
