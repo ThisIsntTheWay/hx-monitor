@@ -74,6 +74,7 @@ services:
       TWILIO_CALL_FROM: ${TWILIO_CALL_FROM:-}
       TWILIO_CALL_LENGTH: ${TWILIO_CALL_LENGTH:-38}
       TWILIO_REGION: ${TWILIO_REGION:-ie1}
+      TWILIO_EDGE: ${TWILIO_EDGE:-dublin}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
       GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION:-}
@@ -82,7 +83,6 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
-    restart: unless-stopped
 
 volumes:
   mongodb_data:
