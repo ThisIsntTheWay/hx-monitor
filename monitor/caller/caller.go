@@ -33,7 +33,7 @@ func createTwilioClient() *twilio.RestClient {
 	var twilioClientParams twilio.ClientParams
 
 	usesAuthToken := c.GetTwilioConfig().AuthConfig.AuthToken != ""
-	slog.Debug("CALLER", "action", "createClient", "usingAuthToken", usesAuthToken)
+	slog.Info("CALLER", "action", "createClient", "usingAuthToken", usesAuthToken)
 	if usesAuthToken {
 		twilioClientParams = twilio.ClientParams{
 			Username: c.GetTwilioConfig().AuthConfig.AccountSid,
@@ -49,6 +49,7 @@ func createTwilioClient() *twilio.RestClient {
 
 	// Twilio region will be acquired by twilio-go by looking up TWILIO_REGION
 	client := twilio.NewRestClientWithParams(twilioClientParams)
+	slog.Info("CONFIG", "region", client.Region, "edge", client.Edge)
 
 	return client
 }
@@ -127,13 +128,13 @@ func Call(number string, startTranscription bool, startRecording bool) (CallResp
 		return CallResponse{}, err
 	} else {
 		var err error
-		var parsedTime time.Time
+		var parsedCreatedTime time.Time
 		if resp.DateCreated != nil {
 			timeString := *resp.DateCreated
-			parsedTime, err = time.Parse(twilioTimeFormat, timeString)
+			parsedCreatedTime, err = time.Parse(twilioTimeFormat, timeString)
 			if err != nil {
 				slog.Error("CALLER", "message", "Failed parsing reported DateCreated", "source", timeString, "error", err.Error())
-				parsedTime = time.Now()
+				parsedCreatedTime = time.Now()
 			}
 		}
 
@@ -146,13 +147,43 @@ func Call(number string, startTranscription bool, startRecording bool) (CallResp
 			}
 		}
 
+		// Safely extract values from resp to avoid nil pointer dereferences
+		var status, sid, direction, priceUnit string
+		if resp.Status != nil {
+			status = *resp.Status
+		}
+		if resp.Sid != nil {
+			sid = *resp.Sid
+		}
+		if resp.Direction != nil {
+			direction = *resp.Direction
+		}
+		if resp.PriceUnit != nil {
+			priceUnit = *resp.PriceUnit
+		}
+
+		// Parse EndTime safely
+		var parsedEndedTime time.Time
+		if resp.EndTime != nil {
+			timeEndedString := *resp.EndTime
+			if t, err := time.Parse(twilioTimeFormat, timeEndedString); err == nil {
+				parsedEndedTime = t
+			} else {
+				slog.Error("CALLER", "message", "Failed parsing reported DateEnded", "source", timeEndedString, "error", err.Error())
+				parsedEndedTime = time.Now()
+			}
+		} else {
+			parsedEndedTime = time.Now()
+		}
+
 		returnObj := CallResponse{
-			Status:      *resp.Status,
-			SID:         *resp.Sid,
-			Direction:   *resp.Direction,
-			DateCreated: parsedTime,
+			Status:      status,
+			SID:         sid,
+			Direction:   direction,
+			DateCreated: parsedCreatedTime,
 			Price:       float32(price),
-			PriceUnit:   *resp.PriceUnit,
+			PriceUnit:   priceUnit,
+			EndTime:     parsedEndedTime,
 		}
 
 		// Check the API for immediate errors
@@ -163,51 +194,6 @@ func Call(number string, startTranscription bool, startRecording bool) (CallResp
 			return CallResponse{}, err
 		} else if callDetails.Status != nil && *callDetails.Status == "failed" {
 			return CallResponse{}, fmt.Errorf("Call failed with status '%s'", *callDetails.Status)
-		}
-
-		slog.Info("CALLER", "action", "call", "success", true, "targetNumber", targetNumber, "call", returnObj)
-		return returnObj, nil
-	}
-}
-
-// Check a call for a given call SID
-func CheckCall(sid string) (CallResponse, error) {
-	client := createTwilioClient()
-
-	params := &twilioApi.FetchCallParams{}
-	resp, err := client.Api.FetchCall(sid, params)
-	if err != nil {
-		slog.Error("CALLER", "action", "fetch", "sid", sid, "error", err.Error())
-		return CallResponse{}, err
-	} else {
-		timeCreatedString := *resp.DateCreated
-		timeEndedString := *resp.EndTime
-		parsedCreatedTime, err := time.Parse(twilioTimeFormat, timeCreatedString)
-		if err != nil {
-			slog.Error("CALLER", "message", "Failed parsing reported DateCreated", "source", timeCreatedString, "error", err.Error())
-			parsedCreatedTime = time.Now()
-		}
-
-		parsedEndedTime, err := time.Parse(twilioTimeFormat, timeEndedString)
-		if err != nil {
-			slog.Error("CALLER", "message", "Failed parsing reported DateEnded", "source", timeEndedString, "error", err.Error())
-			parsedEndedTime = time.Now()
-		}
-
-		price, err := strconv.ParseFloat(*resp.Price, 32)
-		if err != nil {
-			slog.Error("CALLER", "message", "Failed converting reported price", "source", *resp.Price, "error", err.Error())
-			price = 0
-		}
-
-		returnObj := CallResponse{
-			Status:      *resp.Status,
-			SID:         *resp.Sid,
-			Direction:   *resp.Direction,
-			DateCreated: parsedCreatedTime,
-			Price:       float32(price),
-			PriceUnit:   *resp.PriceUnit,
-			EndTime:     parsedEndedTime,
 		}
 
 		slog.Info("CALLER", "action", "fetch", "sid", sid, "response", returnObj)
